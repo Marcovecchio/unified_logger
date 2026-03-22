@@ -79,6 +79,10 @@ module UnifiedLogger
   def self.current_time
     Time.zone&.now || Time.now.utc
   end
+
+  def self.formatted_time
+    current_time.iso8601(3)
+  end
 end
 
 require "unified_logger/railtie" if defined?(Rails::Railtie)

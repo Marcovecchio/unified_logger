@@ -139,7 +139,7 @@ module UnifiedLogger
 
     def append_custom_log(severity, message)
       message = sanitize_log_message(message) if message.is_a?(String)
-      log_hash = { timestamp: UnifiedLogger.current_time, severity: severity, message: message }
+      log_hash = { timestamp: UnifiedLogger.formatted_time, severity: severity, message: message }
 
       CUSTOM_LOGS.value = CUSTOM_LOGS.value + [log_hash]
     end

@@ -37,6 +37,7 @@ module UnifiedLogger
       query_string = env["QUERY_STRING"]
       log = {
         log_type:   :request,
+        timestamp:  UnifiedLogger.formatted_time,
         id:         env["action_dispatch.request_id"],
         ip:         env["action_dispatch.remote_ip"].to_s,
         controller: path_parameters[:controller],

@@ -16,6 +16,7 @@ module UnifiedLogger
       def log_execution(job)
         log = {
           log_type:             :job,
+          timestamp:            UnifiedLogger.formatted_time,
           class_name:           job.class.name,
           id:                   job.job_id,
           queue:                job.queue_name,
