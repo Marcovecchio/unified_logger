@@ -24,8 +24,6 @@ end
 
 require "unified_logger"
 
-Time.zone = "UTC"
-
 class UnifiedLoggerTestCase < ActiveSupport::TestCase
   def teardown
     UnifiedLogger.instance_variable_set(:@config, nil)

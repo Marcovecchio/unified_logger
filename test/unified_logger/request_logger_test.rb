@@ -270,7 +270,7 @@ class UnifiedLogger::RequestLoggerTest < UnifiedLoggerTestCase
     middleware.call(build_rack_env)
 
     log = parsed_log_from(@io)
-    refute log.key?("custom")
+    assert_not log.key?("custom")
   end
 
   # -- Transform request log callable --
@@ -325,7 +325,7 @@ class UnifiedLogger::RequestLoggerTest < UnifiedLoggerTestCase
     middleware.call(env)
 
     log = parsed_log_from(@io)
-    refute log["request"]["headers"].key?("HTTP_SEC_FETCH_MODE")
+    assert_not log["request"]["headers"].key?("HTTP_SEC_FETCH_MODE")
   end
 
   # -- Path parameters --

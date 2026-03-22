@@ -195,7 +195,7 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
   test "omits blank params from log entry" do
     @logger.info("hello")
     log = UnifiedLogger::Logger.custom_logs.last
-    refute log.key?(:params)
+    assert_not log.key?(:params)
   end
 
   test "includes non-blank params in log entry" do
@@ -247,7 +247,7 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
     if result.is_a?(Hash)
       assert_equal "[FILTERED]", result[:password]
     else
-      refute_includes result, "secret"
+      assert_not_includes result, "secret"
     end
   end
 
@@ -303,7 +303,7 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
     error.set_backtrace(["#{Dir.pwd}/app/foo.rb:1:in `bar'", "#{Dir.pwd}/app/baz.rb:2:in `qux'"])
     result = UnifiedLogger::Logger.format_exception(error)
     result[:backtrace].each do |line|
-      refute line.start_with?(Dir.pwd)
+      assert_not line.start_with?(Dir.pwd)
     end
   end
 
@@ -311,7 +311,7 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
     error = RuntimeError.new("fail")
     error.set_backtrace(["app/foo.rb:1", "lib/unified_logger/request_logger.rb:10", "app/bar.rb:2"])
     result = UnifiedLogger::Logger.format_exception(error)
-    refute(result[:backtrace].any? { |line| line.include?("request_logger.rb") })
+    assert_not(result[:backtrace].any? { |line| line.include?("request_logger.rb") })
   end
 
   test "handles exception with nil backtrace" do

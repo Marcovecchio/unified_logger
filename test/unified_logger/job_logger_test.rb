@@ -144,7 +144,7 @@ class UnifiedLogger::JobLoggerTest < UnifiedLoggerTestCase
     end
 
     @io.rewind
-    refute_empty @io.read
+    assert_not_empty @io.read
   end
 
   # -- Custom logs integration --
@@ -168,7 +168,7 @@ class UnifiedLogger::JobLoggerTest < UnifiedLoggerTestCase
   test "omits custom key when no custom logs" do
     UnifiedLogger::JobLogger.log(@job) { "work" }
     log = parsed_log_from(@io)
-    refute log.key?("custom")
+    assert_not log.key?("custom")
   end
 
   # -- Transform job log callable --
