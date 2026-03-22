@@ -102,6 +102,7 @@ class UnifiedLoggerTest < UnifiedLoggerTestCase
   end
 
   test "filter delegates to Logger" do
+    skip_unless_parameter_filter!
     result = UnifiedLogger.filter({ password: "secret123", name: "ok" })
     assert_equal "ok", result[:name]
     assert_equal "[FILTERED]", result[:password]

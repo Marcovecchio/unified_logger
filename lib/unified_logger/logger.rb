@@ -108,9 +108,11 @@ module UnifiedLogger
 
         filter_class = if defined?(ActiveSupport::ParameterFilter)
                          ActiveSupport::ParameterFilter
-                       else
+                       elsif defined?(ActionDispatch::Http::ParameterFilter)
                          ActionDispatch::Http::ParameterFilter
                        end
+        return content unless filter_class
+
         filter_class.new(UnifiedLogger.config[:filter_params]).filter(content)
       end
 

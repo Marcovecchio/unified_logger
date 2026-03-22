@@ -1,10 +1,12 @@
 appraise "activesupport-4.2" do
   gem "activesupport", "~> 4.2.0"
+  gem "actionpack", "~> 4.2.0"
   gem "concurrent-ruby", "~> 1.0"
 end
 
 appraise "activesupport-5.2" do
   gem "activesupport", "~> 5.2.0"
+  gem "actionpack", "~> 5.2.0"
   gem "concurrent-ruby", "~> 1.0"
 end
 

@@ -16,40 +16,40 @@ jobs:
         include:
           # Ruby 2.4 + ActiveSupport 4.2
           - ruby: "2.4"
-            gemfile: gemfiles/activesupport_4_2.gemfile
+            gemfile: gemfiles/activesupport_4.2.gemfile
           # Ruby 2.5 + ActiveSupport 5.2
           - ruby: "2.5"
-            gemfile: gemfiles/activesupport_5_2.gemfile
+            gemfile: gemfiles/activesupport_5.2.gemfile
           # Ruby 2.7 + ActiveSupport 6.0
           - ruby: "2.7"
-            gemfile: gemfiles/activesupport_6_0.gemfile
+            gemfile: gemfiles/activesupport_6.0.gemfile
           # Ruby 2.7 + ActiveSupport 6.1
           - ruby: "2.7"
-            gemfile: gemfiles/activesupport_6_1.gemfile
+            gemfile: gemfiles/activesupport_6.1.gemfile
           # Ruby 3.0 + ActiveSupport 6.1
           - ruby: "3.0"
-            gemfile: gemfiles/activesupport_6_1.gemfile
+            gemfile: gemfiles/activesupport_6.1.gemfile
           # Ruby 3.0 + ActiveSupport 7.0
           - ruby: "3.0"
-            gemfile: gemfiles/activesupport_7_0.gemfile
+            gemfile: gemfiles/activesupport_7.0.gemfile
           # Ruby 3.1 + ActiveSupport 7.0
           - ruby: "3.1"
-            gemfile: gemfiles/activesupport_7_0.gemfile
+            gemfile: gemfiles/activesupport_7.0.gemfile
           # Ruby 3.1 + ActiveSupport 7.1
           - ruby: "3.1"
-            gemfile: gemfiles/activesupport_7_1.gemfile
+            gemfile: gemfiles/activesupport_7.1.gemfile
           # Ruby 3.2 + ActiveSupport 7.1
           - ruby: "3.2"
-            gemfile: gemfiles/activesupport_7_1.gemfile
+            gemfile: gemfiles/activesupport_7.1.gemfile
           # Ruby 3.2 + ActiveSupport 7.2
           - ruby: "3.2"
-            gemfile: gemfiles/activesupport_7_2.gemfile
+            gemfile: gemfiles/activesupport_7.2.gemfile
           # Ruby 3.3 + ActiveSupport 7.2
           - ruby: "3.3"
-            gemfile: gemfiles/activesupport_7_2.gemfile
+            gemfile: gemfiles/activesupport_7.2.gemfile
           # Ruby 3.3 + ActiveSupport 8.0
           - ruby: "3.3"
-            gemfile: gemfiles/activesupport_8_0.gemfile
+            gemfile: gemfiles/activesupport_8.0.gemfile
 
     env:
       BUNDLE_GEMFILE: ${{ matrix.gemfile }}

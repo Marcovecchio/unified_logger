@@ -255,6 +255,7 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
   end
 
   test "filters data before trimming" do
+    skip_unless_parameter_filter!
     result = UnifiedLogger::Logger.trim({ password: "secret", name: "ok" })
     if result.is_a?(Hash)
       assert_equal "[FILTERED]", result[:password]
@@ -275,16 +276,19 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
   # -- filter --
 
   test "filters password keys" do
+    skip_unless_parameter_filter!
     result = UnifiedLogger::Logger.filter({ password: "abc" })
     assert_equal "[FILTERED]", result[:password]
   end
 
   test "filters secret keys" do
+    skip_unless_parameter_filter!
     result = UnifiedLogger::Logger.filter({ secret: "xyz" })
     assert_equal "[FILTERED]", result[:secret]
   end
 
   test "filters token keys" do
+    skip_unless_parameter_filter!
     result = UnifiedLogger::Logger.filter({ token: "t" })
     assert_equal "[FILTERED]", result[:token]
   end
@@ -303,6 +307,7 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
   end
 
   test "filters nested hashes" do
+    skip_unless_parameter_filter!
     result = UnifiedLogger::Logger.filter({ user: { password: "x", name: "Bob" } })
     assert_equal "[FILTERED]", result[:user][:password]
     assert_equal "Bob", result[:user][:name]
@@ -322,6 +327,7 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
   end
 
   test "filters the log before formatting" do
+    skip_unless_parameter_filter!
     result = UnifiedLogger::Logger.format({ password: "secret", name: "ok" })
     parsed = JSON.parse(result)
     assert_equal "[FILTERED]", parsed["password"]

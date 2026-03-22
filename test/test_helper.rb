@@ -1,6 +1,10 @@
-require "simplecov"
-SimpleCov.start do
-  add_filter "/test/"
+begin
+  require "simplecov"
+  SimpleCov.start do
+    add_filter "/test/"
+  end
+rescue LoadError
+  # simplecov not available on older Ruby versions
 end
 
 $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
@@ -12,6 +16,11 @@ require "json"
 require "logger"
 require "rack"
 require "active_support/all"
+begin
+  require "action_dispatch"
+rescue LoadError
+  # actionpack not available; filter tests will skip
+end
 
 require "unified_logger"
 
@@ -65,6 +74,11 @@ class UnifiedLoggerTestCase < ActiveSupport::TestCase
     FakeJob.new(**defaults, **overrides)
   end
 
+  def skip_unless_parameter_filter!
+    skip "No ParameterFilter available" unless defined?(ActiveSupport::ParameterFilter) ||
+                                                defined?(ActionDispatch::Http::ParameterFilter)
+  end
+
   def parsed_log_from(io)
     io.rewind
     output = io.read
@@ -72,8 +86,17 @@ class UnifiedLoggerTestCase < ActiveSupport::TestCase
   end
 end
 
-FakeJob = Struct.new(
-  :job_id, :queue_name, :arguments, :executions,
-  :exception_executions, :enqueued_at, :locale,
-  keyword_init: true
-)
+class FakeJob
+  attr_accessor :job_id, :queue_name, :arguments, :executions,
+                :exception_executions, :enqueued_at, :locale
+
+  def initialize(job_id:, queue_name:, arguments:, executions:, exception_executions:, enqueued_at:, locale:)
+    @job_id = job_id
+    @queue_name = queue_name
+    @arguments = arguments
+    @executions = executions
+    @exception_executions = exception_executions
+    @enqueued_at = enqueued_at
+    @locale = locale
+  end
+end

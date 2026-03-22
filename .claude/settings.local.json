@@ -1,7 +1,33 @@
 {
   "permissions": {
     "allow": [
-      "Bash(gh run view 23404311988 --json jobs --jq '.jobs[] | \"\"\\\\\\(.name\\): \\\\\\(.conclusion\\)\"\"')"
+      "Bash(gh run view 23404311988 --json jobs --jq '.jobs[] | \"\"\\\\\\(.name\\): \\\\\\(.conclusion\\)\"\"')",
+      "Bash(gh run list --limit 3)",
+      "Bash(gh run view 23405222740 --json jobs --jq '.jobs[] | \"\"\\\\\\(.name\\): \\\\\\(.conclusion\\)\"\"')",
+      "Bash(gh run view 23405222740 --log-failed)",
+      "Bash(gem info mocha --remote)",
+      "Bash(gem specification mocha -r)",
+      "Bash(bundle exec rake test)",
+      "Bash(bundle exec appraisal generate)",
+      "Bash(bundle install --gemfile /Users/eduardo/dev/unified_logger/gemfiles/activesupport_5.2.gemfile)",
+      "Bash(bundle exec appraisal activesupport-5.2 rake test)",
+      "Bash(bundle exec appraisal activesupport-7.0 rake test)",
+      "Bash(bundle install --gemfile /Users/eduardo/dev/unified_logger/gemfiles/activesupport_7.0.gemfile)",
+      "Bash(rbenv versions)",
+      "Bash(rbenv install 2.5.9)",
+      "Bash(rbenv install 2.7.8)",
+      "Bash(rbenv install 3.0.7)",
+      "Bash(RBENV_VERSION=2.5.9 ruby -e \"puts RUBY_VERSION\")",
+      "Bash(RBENV_VERSION=2.5.9 bundle install --gemfile /Users/eduardo/dev/unified_logger/gemfiles/activesupport_5.2.gemfile)",
+      "Bash(RBENV_VERSION=2.5.9 gem install bundler -v '~> 2.3.0')",
+      "Bash(RBENV_VERSION=2.4.10 BUNDLE_GEMFILE=/Users/eduardo/dev/unified_logger/gemfiles/activesupport_4.2.gemfile bundle exec rake test)",
+      "Bash(RBENV_VERSION=2.5.9 BUNDLE_GEMFILE=/Users/eduardo/dev/unified_logger/gemfiles/activesupport_5.2.gemfile bundle exec rake test)",
+      "Bash(RBENV_VERSION=2.7.8 BUNDLE_GEMFILE=/Users/eduardo/dev/unified_logger/gemfiles/activesupport_6.0.gemfile bundle exec rake test)",
+      "Bash(RBENV_VERSION=2.4.10 bundle install --gemfile /Users/eduardo/dev/unified_logger/gemfiles/activesupport_4.2.gemfile)",
+      "Bash(RBENV_VERSION=2.4.10 bundle update --gemfile /Users/eduardo/dev/unified_logger/gemfiles/activesupport_4.2.gemfile)"
+    ],
+    "additionalDirectories": [
+      "/Users/eduardo/dev/unified_logger/gemfiles"
     ]
   }
 }
