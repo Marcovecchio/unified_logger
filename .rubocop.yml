@@ -1,6 +1,5 @@
 plugins:
   - rubocop-rake
-  - rubocop-rails
 AllCops:
   TargetRubyVersion: 3.4
   NewCops: enable
