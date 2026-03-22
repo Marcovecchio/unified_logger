@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh run view 23404311988 --json jobs --jq '.jobs[] | \"\"\\\\\\(.name\\): \\\\\\(.conclusion\\)\"\"')"
+    ]
+  }
+}

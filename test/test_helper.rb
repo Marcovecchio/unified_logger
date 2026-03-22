@@ -9,6 +9,7 @@ require "minitest/autorun"
 require "mocha/minitest"
 require "stringio"
 require "json"
+require "logger"
 require "rack"
 require "active_support/all"
 

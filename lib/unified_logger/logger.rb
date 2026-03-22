@@ -123,7 +123,7 @@ module UnifiedLogger
       def append_custom_log(severity, message, params)
         clean_message = clean_log_message(message)
         log_hash = { timestamp: UnifiedLogger.current_time, severity: severity,
-                     message: clean_message, params: params }.compact_blank
+                     message: clean_message, params: params }.reject { |_, v| v.respond_to?(:empty?) ? v.empty? : !v }
 
         CUSTOM_LOGS.value = CUSTOM_LOGS.value + [log_hash]
         true

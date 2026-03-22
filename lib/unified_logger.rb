@@ -1,7 +1,11 @@
 require "concurrent"
 require "active_support/core_ext/object/blank"
 require "active_support/core_ext/enumerable"
-require "active_support/parameter_filter"
+begin
+  require "active_support/parameter_filter"
+rescue LoadError
+  # ActiveSupport < 6.0; falls back to ActionDispatch::Http::ParameterFilter at runtime
+end
 require "active_support/backtrace_cleaner"
 require "json"
 require "logger"

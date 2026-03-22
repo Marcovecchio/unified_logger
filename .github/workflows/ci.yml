@@ -14,6 +14,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Ruby 2.4 + ActiveSupport 4.2
+          - ruby: "2.4"
+            gemfile: gemfiles/activesupport_4_2.gemfile
           # Ruby 2.5 + ActiveSupport 5.2
           - ruby: "2.5"
             gemfile: gemfiles/activesupport_5_2.gemfile

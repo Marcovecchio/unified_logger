@@ -106,7 +106,7 @@ UnifiedLogger.configure(
   # auto_insert_middleware: true,
 
   # Paths to silence in request logs
-  # silence_paths: ["/up", "/status", "/health-check"],
+  # silence_paths: [%r{^/assets/}, "/up", "/status", "/health-check"],
 
   # Add additional parameters to filter out from logs
   # filter_params: UnifiedLogger::DEFAULTS[:filter_params] + %i[password]
