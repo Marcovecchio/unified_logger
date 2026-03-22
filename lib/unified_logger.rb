@@ -54,8 +54,7 @@ module UnifiedLogger
       @log_transformer = callable
     end
 
-    delegate :trim, :filter, :format, :format_exception,
-             :clean_log_message, :append_custom_log,
+    delegate :trim, :format, :format_exception,
              :custom_logs, :fetch_and_reset_custom_logs, :reset_thread_logs,
              to: :"UnifiedLogger::Logger"
   end

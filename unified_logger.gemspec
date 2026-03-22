@@ -6,7 +6,7 @@ Gem::Specification.new do |spec|
   spec.authors       = ["Marcovecchio"]
   spec.summary       = "Structured JSON logging for Rack and Rails applications"
   spec.description   = "One JSON log line per request or job. Captures request/response data, in-app logger calls, " \
-                        "exceptions with cleaned backtraces, and sensitive data filtering — all in a single event."
+                       "exceptions with cleaned backtraces, and sensitive data filtering — all in a single event."
   spec.homepage      = "https://github.com/marcovecchio/unified_logger"
   spec.license       = "MIT"
 

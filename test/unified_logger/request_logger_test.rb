@@ -243,7 +243,7 @@ class UnifiedLogger::RequestLoggerTest < UnifiedLoggerTestCase
 
   test "includes custom logs when present" do
     app = lambda do |_env|
-      UnifiedLogger::Logger.append_custom_log(:info, "inside request", {})
+      @logger.info("inside request")
       [200, { "content-type" => "application/json" }, ['{"ok":true}']]
     end
     middleware = UnifiedLogger::RequestLogger.new(app)
@@ -256,7 +256,7 @@ class UnifiedLogger::RequestLoggerTest < UnifiedLoggerTestCase
 
   test "resets custom logs after request" do
     app = lambda do |_env|
-      UnifiedLogger::Logger.append_custom_log(:info, "inside", {})
+      @logger.info("inside")
       [200, { "content-type" => "application/json" }, ['{"ok":true}']]
     end
     middleware = UnifiedLogger::RequestLogger.new(app)

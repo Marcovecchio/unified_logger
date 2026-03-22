@@ -24,7 +24,8 @@
       "Bash(RBENV_VERSION=2.5.9 BUNDLE_GEMFILE=/Users/eduardo/dev/unified_logger/gemfiles/activesupport_5.2.gemfile bundle exec rake test)",
       "Bash(RBENV_VERSION=2.7.8 BUNDLE_GEMFILE=/Users/eduardo/dev/unified_logger/gemfiles/activesupport_6.0.gemfile bundle exec rake test)",
       "Bash(RBENV_VERSION=2.4.10 bundle install --gemfile /Users/eduardo/dev/unified_logger/gemfiles/activesupport_4.2.gemfile)",
-      "Bash(RBENV_VERSION=2.4.10 bundle update --gemfile /Users/eduardo/dev/unified_logger/gemfiles/activesupport_4.2.gemfile)"
+      "Bash(RBENV_VERSION=2.4.10 bundle update --gemfile /Users/eduardo/dev/unified_logger/gemfiles/activesupport_4.2.gemfile)",
+      "Bash(gh run list --limit 1)"
     ],
     "additionalDirectories": [
       "/Users/eduardo/dev/unified_logger/gemfiles"

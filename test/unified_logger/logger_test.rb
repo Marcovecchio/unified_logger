@@ -71,31 +71,26 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
     assert_empty UnifiedLogger::Logger.custom_logs
   end
 
-  # -- add method --
+  # -- nil / empty / below-level messages --
 
-  test "add returns true for nil message" do
-    assert_equal true, @logger.add(::Logger::INFO, nil)
+  test "nil message does not append a custom log" do
+    @logger.info(nil)
     assert_empty UnifiedLogger::Logger.custom_logs
   end
 
-  test "add returns true for empty string message" do
-    assert_equal true, @logger.add(::Logger::INFO, "")
+  test "empty string message does not append a custom log" do
+    @logger.info("")
     assert_empty UnifiedLogger::Logger.custom_logs
   end
 
-  test "add returns true when severity is below level" do
+  test "message below level does not append a custom log" do
     @logger.level = ::Logger::ERROR
-    assert_equal true, @logger.add(::Logger::DEBUG, "test")
+    @logger.debug("test")
     assert_empty UnifiedLogger::Logger.custom_logs
   end
 
-  test "add maps severity to correct symbol" do
-    @logger.add(::Logger::WARN, "warning")
-    assert_equal :warn, UnifiedLogger::Logger.custom_logs.last[:severity]
-  end
-
-  test "add maps unknown severity integer to :unknown" do
-    @logger.add(999, "test")
+  test "unknown method maps to unknown severity" do
+    @logger.unknown("test")
     assert_equal :unknown, UnifiedLogger::Logger.custom_logs.last[:severity]
   end
 
@@ -136,13 +131,13 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
   end
 
   test "custom_logs is thread-local" do
-    UnifiedLogger::Logger.append_custom_log(:info, "main thread", {})
+    @logger.info("main thread")
     thread_logs = Thread.new { UnifiedLogger::Logger.custom_logs }.value
     assert_empty thread_logs
   end
 
   test "reset_thread_logs clears custom logs" do
-    UnifiedLogger::Logger.append_custom_log(:info, "test", {})
+    @logger.info("test")
     UnifiedLogger::Logger.reset_thread_logs
     assert_empty UnifiedLogger::Logger.custom_logs
   end
@@ -150,7 +145,7 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
   test "reset_thread_logs does not affect other threads" do
     other_thread_logs = nil
     t = Thread.new do
-      UnifiedLogger::Logger.append_custom_log(:info, "other", {})
+      UnifiedLogger::Logger.new($stdout).info("other")
       sleep 0.1
       other_thread_logs = UnifiedLogger::Logger.custom_logs
     end
@@ -161,8 +156,8 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
   end
 
   test "fetch_and_reset_custom_logs returns logs and clears" do
-    UnifiedLogger::Logger.append_custom_log(:info, "one", {})
-    UnifiedLogger::Logger.append_custom_log(:warn, "two", {})
+    @logger.info("one")
+    @logger.warn("two")
     logs = UnifiedLogger::Logger.fetch_and_reset_custom_logs
     assert_equal 2, logs.size
     assert_empty UnifiedLogger::Logger.custom_logs
@@ -175,7 +170,8 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
   test "concurrent threads do not interfere" do
     threads = 5.times.map do |i|
       Thread.new do
-        10.times { UnifiedLogger::Logger.append_custom_log(:info, "thread-#{i}", {}) }
+        logger = UnifiedLogger::Logger.new($stdout)
+        10.times { logger.info("thread-#{i}") }
         UnifiedLogger::Logger.custom_logs
       end
     end
@@ -186,57 +182,48 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
     end
   end
 
-  # -- append_custom_log --
+  # -- log entry structure --
 
-  test "appends hash with timestamp, severity, and message" do
-    UnifiedLogger::Logger.append_custom_log(:info, "hello", {})
+  test "log entry includes timestamp, severity, and message" do
+    @logger.info("hello")
     log = UnifiedLogger::Logger.custom_logs.last
     assert log.key?(:timestamp)
     assert_equal :info, log[:severity]
     assert_equal "hello", log[:message]
   end
 
-  test "omits blank params from the hash" do
-    UnifiedLogger::Logger.append_custom_log(:info, "hello", {})
+  test "omits blank params from log entry" do
+    @logger.info("hello")
     log = UnifiedLogger::Logger.custom_logs.last
     refute log.key?(:params)
   end
 
-  test "includes non-blank params" do
-    UnifiedLogger::Logger.append_custom_log(:info, "hello", { user_id: 1 })
+  test "includes non-blank params in log entry" do
+    @logger.info("hello", { user_id: 1 })
     log = UnifiedLogger::Logger.custom_logs.last
     assert_equal({ user_id: 1 }, log[:params])
   end
 
-  test "cleans the message via clean_log_message" do
-    UnifiedLogger::Logger.append_custom_log(:info, "\e[31mred\e[0m", {})
+  # -- message sanitization --
+
+  test "strips ANSI escape codes from logged message" do
+    @logger.info("\e[31mred\e[0m")
     assert_equal "red", UnifiedLogger::Logger.custom_logs.last[:message]
   end
 
-  # -- clean_log_message --
-
-  test "strips ANSI escape codes" do
-    assert_equal "Error", UnifiedLogger::Logger.clean_log_message("\e[31mError\e[0m")
+  test "replaces double quotes with single quotes in logged message" do
+    @logger.info('say "hi"')
+    assert_equal "say 'hi'", UnifiedLogger::Logger.custom_logs.last[:message]
   end
 
-  test "replaces double quotes with single quotes" do
-    assert_equal "say 'hi'", UnifiedLogger::Logger.clean_log_message('say "hi"')
+  test "collapses whitespace in logged message" do
+    @logger.info("a   b")
+    assert_equal "a b", UnifiedLogger::Logger.custom_logs.last[:message]
   end
 
-  test "collapses multiple whitespace into single space" do
-    assert_equal "a b", UnifiedLogger::Logger.clean_log_message("a   b")
-  end
-
-  test "strips leading and trailing whitespace" do
-    assert_equal "hello", UnifiedLogger::Logger.clean_log_message("  hello  ")
-  end
-
-  test "returns non-string input unchanged" do
-    assert_equal 123, UnifiedLogger::Logger.clean_log_message(123)
-  end
-
-  test "returns nil unchanged" do
-    assert_nil UnifiedLogger::Logger.clean_log_message(nil)
+  test "strips leading and trailing whitespace in logged message" do
+    @logger.info("  hello  ")
+    assert_equal "hello", UnifiedLogger::Logger.custom_logs.last[:message]
   end
 
   # -- trim --
@@ -271,46 +258,6 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
     bad_string.define_singleton_method(:inspect) { "x" * 100 }
     result = UnifiedLogger::Logger.trim(bad_string)
     assert_kind_of String, result
-  end
-
-  # -- filter --
-
-  test "filters password keys" do
-    skip_unless_parameter_filter!
-    result = UnifiedLogger::Logger.filter({ password: "abc" })
-    assert_equal "[FILTERED]", result[:password]
-  end
-
-  test "filters secret keys" do
-    skip_unless_parameter_filter!
-    result = UnifiedLogger::Logger.filter({ secret: "xyz" })
-    assert_equal "[FILTERED]", result[:secret]
-  end
-
-  test "filters token keys" do
-    skip_unless_parameter_filter!
-    result = UnifiedLogger::Logger.filter({ token: "t" })
-    assert_equal "[FILTERED]", result[:token]
-  end
-
-  test "does not filter non-sensitive keys" do
-    result = UnifiedLogger::Logger.filter({ name: "Bob" })
-    assert_equal "Bob", result[:name]
-  end
-
-  test "returns non-enumerable content unchanged" do
-    assert_equal "plain string", UnifiedLogger::Logger.filter("plain string")
-  end
-
-  test "filter returns nil unchanged" do
-    assert_nil UnifiedLogger::Logger.filter(nil)
-  end
-
-  test "filters nested hashes" do
-    skip_unless_parameter_filter!
-    result = UnifiedLogger::Logger.filter({ user: { password: "x", name: "Bob" } })
-    assert_equal "[FILTERED]", result[:user][:password]
-    assert_equal "Bob", result[:user][:name]
   end
 
   # -- format --

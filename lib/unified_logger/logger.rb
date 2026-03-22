@@ -41,14 +41,6 @@ module UnifiedLogger
       add(::Logger::UNKNOWN, message, params)
     end
 
-    def add(severity, message = nil, params = {})
-      return true if message.blank?
-      return true unless severity >= level
-
-      severity_symbol = SEVERITY_MAP[severity] || :unknown
-      self.class.append_custom_log(severity_symbol, message, params)
-    end
-
     def <<(message)
       add(::Logger::UNKNOWN, message.to_s.chomp, {})
       self
@@ -103,6 +95,14 @@ module UnifiedLogger
         end
       end
 
+      def format(log)
+        filtered_log = filter(log)
+        formatter = UnifiedLogger.log_transformer
+        formatter.present? ? formatter.call(filtered_log) : filtered_log.to_json
+      end
+
+      private
+
       def filter(content)
         return content unless content.respond_to?(:each)
 
@@ -115,31 +115,34 @@ module UnifiedLogger
 
         filter_class.new(UnifiedLogger.config[:filter_params]).filter(content)
       end
+    end
 
-      def format(log)
-        filtered_log = filter(log)
-        formatter = UnifiedLogger.log_transformer
-        formatter.present? ? formatter.call(filtered_log) : filtered_log.to_json
-      end
+    private
 
-      def append_custom_log(severity, message, params)
-        clean_message = clean_log_message(message)
-        log_hash = { timestamp: UnifiedLogger.current_time, severity: severity,
-                     message: clean_message, params: params }.reject { |_, v| v.respond_to?(:empty?) ? v.empty? : !v }
+    def add(severity, message = nil, params = {})
+      return true if message.blank?
+      return true unless severity >= level
 
-        CUSTOM_LOGS.value = CUSTOM_LOGS.value + [log_hash]
-        true
-      end
+      severity_symbol = SEVERITY_MAP[severity] || :unknown
+      append_custom_log(severity_symbol, message, params)
+    end
 
-      def clean_log_message(text)
-        return text unless text.is_a?(String)
+    def append_custom_log(severity, message, params)
+      clean_message = sanitize_log_message(message)
+      log_hash = { timestamp: UnifiedLogger.current_time, severity: severity,
+                   message: clean_message, params: params }.reject { |_, v| v.respond_to?(:empty?) ? v.empty? : !v }
 
-        text = text.gsub(/\e\[[0-9;]*m/, "")
-        text = text.gsub(%r{[^a-zA-Z0-9\s.,;:!?'"()\[\]{}\-_@#$%&*+=<>|~`/]}, "")
-        text = text.gsub('"', "'")
-        text = text.gsub(/\s+/, " ")
-        text.strip
-      end
+      CUSTOM_LOGS.value = CUSTOM_LOGS.value + [log_hash]
+    end
+
+    def sanitize_log_message(text)
+      return text unless text.is_a?(String)
+
+      text = text.gsub(/\e\[[0-9;]*m/, "")
+      text = text.gsub(%r{[^a-zA-Z0-9\s.,;:!?'"()\[\]{}\-_@#$%&*+=<>|~`/]}, "")
+      text = text.gsub('"', "'")
+      text = text.gsub(/\s+/, " ")
+      text.strip
     end
   end
 end

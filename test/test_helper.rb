@@ -76,7 +76,7 @@ class UnifiedLoggerTestCase < ActiveSupport::TestCase
 
   def skip_unless_parameter_filter!
     skip "No ParameterFilter available" unless defined?(ActiveSupport::ParameterFilter) ||
-                                                defined?(ActionDispatch::Http::ParameterFilter)
+                                               defined?(ActionDispatch::Http::ParameterFilter)
   end
 
   def parsed_log_from(io)

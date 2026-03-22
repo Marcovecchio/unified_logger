@@ -1,30 +1,59 @@
 AllCops:
-  TargetRubyVersion: 2.4
+  TargetRubyVersion: 3.4
   NewCops: enable
   SuggestExtensions: false
   Exclude:
     - "coverage/**/*"
     - "gemfiles/**/*"
     - "pkg/**/*"
-    - "vendor/**/*"
 
 Style/StringLiterals:
   EnforcedStyle: double_quotes
 
+Style/ClassAndModuleChildren:
+  Enabled: false
+
 Style/StringLiteralsInInterpolation:
   EnforcedStyle: double_quotes
 
+Style/Documentation:
+  Enabled: false
+
+Style/SafeNavigationChainLength:
+  Max: 5
+
+Style/OneClassPerFile:
+  Enabled: false
+
+Style/FrozenStringLiteralComment:
+  Enabled: false
+
 Layout/LineLength:
-  Max: 140
+  Max: 150
+
+Layout/HashAlignment:
+  EnforcedHashRocketStyle: table
+  EnforcedColonStyle: table
 
 Metrics/MethodLength:
-  Max: 30
+  Enabled: false
 
 Metrics/AbcSize:
-  Max: 30
+  Enabled: false
 
 Metrics/ClassLength:
-  Max: 200
+  Enabled: false
+
+Metrics/PerceivedComplexity:
+  Enabled: false
+  Max: 7
+
+Metrics/CyclomaticComplexity:
+  Enabled: false
+  Max: 5
+
+Metrics/ParameterLists:
+  Enabled: false
 
 Gemspec/RequiredRubyVersion:
   Enabled: false

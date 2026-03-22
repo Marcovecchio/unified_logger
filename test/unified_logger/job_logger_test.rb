@@ -151,7 +151,7 @@ class UnifiedLogger::JobLoggerTest < UnifiedLoggerTestCase
 
   test "includes custom logs when present" do
     UnifiedLogger::JobLogger.log(@job) do
-      UnifiedLogger::Logger.append_custom_log(:info, "inside job", {})
+      @logger.info("inside job")
     end
     log = parsed_log_from(@io)
     assert log.key?("custom")
@@ -160,7 +160,7 @@ class UnifiedLogger::JobLoggerTest < UnifiedLoggerTestCase
 
   test "resets custom logs after job" do
     UnifiedLogger::JobLogger.log(@job) do
-      UnifiedLogger::Logger.append_custom_log(:info, "inside", {})
+      @logger.info("inside")
     end
     assert_empty UnifiedLogger::Logger.custom_logs
   end

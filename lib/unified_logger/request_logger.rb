@@ -80,7 +80,7 @@ module UnifiedLogger
       return nil if content_type&.exclude?("application/") && content_type.exclude?("text/plain")
       return response_body(response.body, content_type) if response.respond_to?(:body)
 
-      body = response.respond_to?(:map) ? response.map(&:to_s).join : response.to_s
+      body = response.respond_to?(:map) ? response.join : response.to_s
 
       parse_body(body, content_type)
     ensure

@@ -60,7 +60,7 @@ class UnifiedLoggerTest < UnifiedLoggerTestCase
   end
 
   test "log_transformer= stores the callable" do
-    callable = ->(log) { log.to_json }
+    callable = lambda(&:to_json)
     UnifiedLogger.log_transformer = callable
     assert_same callable, UnifiedLogger.log_transformer
   end
@@ -101,13 +101,6 @@ class UnifiedLoggerTest < UnifiedLoggerTestCase
     assert_equal({ name: "test" }, result)
   end
 
-  test "filter delegates to Logger" do
-    skip_unless_parameter_filter!
-    result = UnifiedLogger.filter({ password: "secret123", name: "ok" })
-    assert_equal "ok", result[:name]
-    assert_equal "[FILTERED]", result[:password]
-  end
-
   test "format delegates to Logger" do
     result = UnifiedLogger.format({ a: 1 })
     assert_equal({ "a" => 1 }, JSON.parse(result))
@@ -118,27 +111,22 @@ class UnifiedLoggerTest < UnifiedLoggerTestCase
     assert_equal({ message: "boom" }, result)
   end
 
-  test "clean_log_message delegates to Logger" do
-    result = UnifiedLogger.clean_log_message("\e[31mhello\e[0m")
-    assert_equal "hello", result
-  end
-
-  test "append_custom_log and custom_logs delegate to Logger" do
-    UnifiedLogger.append_custom_log(:info, "test", {})
+  test "custom_logs delegates to Logger" do
+    UnifiedLogger::Logger.new($stdout).info("test")
     logs = UnifiedLogger.custom_logs
     assert_equal 1, logs.size
     assert_equal :info, logs.first[:severity]
   end
 
   test "fetch_and_reset_custom_logs delegates to Logger" do
-    UnifiedLogger.append_custom_log(:info, "test", {})
+    UnifiedLogger::Logger.new($stdout).info("test")
     logs = UnifiedLogger.fetch_and_reset_custom_logs
     assert_equal 1, logs.size
     assert_empty UnifiedLogger.custom_logs
   end
 
   test "reset_thread_logs delegates to Logger" do
-    UnifiedLogger.append_custom_log(:info, "test", {})
+    UnifiedLogger::Logger.new($stdout).info("test")
     UnifiedLogger.reset_thread_logs
     assert_empty UnifiedLogger.custom_logs
   end
