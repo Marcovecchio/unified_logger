@@ -1,0 +1,32 @@
+AllCops:
+  TargetRubyVersion: 2.4
+  NewCops: enable
+  SuggestExtensions: false
+  Exclude:
+    - "coverage/**/*"
+    - "gemfiles/**/*"
+    - "pkg/**/*"
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: double_quotes
+
+Layout/LineLength:
+  Max: 140
+
+Metrics/MethodLength:
+  Max: 30
+
+Metrics/AbcSize:
+  Max: 30
+
+Metrics/ClassLength:
+  Max: 200
+
+Gemspec/RequiredRubyVersion:
+  Enabled: false
+
+Gemspec/DevelopmentDependencies:
+  EnforcedStyle: Gemfile
