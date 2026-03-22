@@ -17,32 +17,38 @@ module UnifiedLogger
       self.formatter = proc {}
     end
 
-    def debug(message = nil, params = {})
-      add(::Logger::DEBUG, message, params)
+    def debug(message = nil, &block)
+      message = block.call if message.nil? && block
+      add(::Logger::DEBUG, message)
     end
 
-    def info(message = nil, params = {})
-      add(::Logger::INFO, message, params)
+    def info(message = nil, &block)
+      message = block.call if message.nil? && block
+      add(::Logger::INFO, message)
     end
 
-    def warn(message = nil, params = {})
-      add(::Logger::WARN, message, params)
+    def warn(message = nil, &block)
+      message = block.call if message.nil? && block
+      add(::Logger::WARN, message)
     end
 
-    def error(message = nil, params = {})
-      add(::Logger::ERROR, message, params)
+    def error(message = nil, &block)
+      message = block.call if message.nil? && block
+      add(::Logger::ERROR, message)
     end
 
-    def fatal(message = nil, params = {})
-      add(::Logger::FATAL, message, params)
+    def fatal(message = nil, &block)
+      message = block.call if message.nil? && block
+      add(::Logger::FATAL, message)
     end
 
-    def unknown(message = nil, params = {})
-      add(::Logger::UNKNOWN, message, params)
+    def unknown(message = nil, &block)
+      message = block.call if message.nil? && block
+      add(::Logger::UNKNOWN, message)
     end
 
     def <<(message)
-      add(::Logger::UNKNOWN, message.to_s.chomp, {})
+      add(::Logger::UNKNOWN, message.to_s.chomp)
       self
     end
 
@@ -117,20 +123,23 @@ module UnifiedLogger
       end
     end
 
-    private
+    def add(severity, message = nil, progname = nil, &block)
+      if message.nil?
+        message = block ? block.call : progname
+      end
 
-    def add(severity, message = nil, params = {})
       return true if message.blank?
       return true unless severity >= level
 
       severity_symbol = SEVERITY_MAP[severity] || :unknown
-      append_custom_log(severity_symbol, message, params)
+      append_custom_log(severity_symbol, message)
     end
 
-    def append_custom_log(severity, message, params)
-      clean_message = sanitize_log_message(message)
-      log_hash = { timestamp: UnifiedLogger.current_time, severity: severity,
-                   message: clean_message, params: params }.reject { |_, v| v.respond_to?(:empty?) ? v.empty? : !v }
+    private
+
+    def append_custom_log(severity, message)
+      message = sanitize_log_message(message) if message.is_a?(String)
+      log_hash = { timestamp: UnifiedLogger.current_time, severity: severity, message: message }
 
       CUSTOM_LOGS.value = CUSTOM_LOGS.value + [log_hash]
     end

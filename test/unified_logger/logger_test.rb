@@ -48,9 +48,29 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
     assert_equal :unknown, UnifiedLogger::Logger.custom_logs.last[:severity]
   end
 
-  test "severity methods accept params hash" do
-    @logger.info("msg", { user_id: 1 })
-    assert_equal({ user_id: 1 }, UnifiedLogger::Logger.custom_logs.last[:params])
+  test "accepts a hash as message" do
+    @logger.info({ user_id: 1, action: "login" })
+    assert_equal({ user_id: 1, action: "login" }, UnifiedLogger::Logger.custom_logs.last[:message])
+  end
+
+  test "accepts an array as message" do
+    @logger.info(%w[item1 item2])
+    assert_equal(%w[item1 item2], UnifiedLogger::Logger.custom_logs.last[:message])
+  end
+
+  test "accepts a block as message" do
+    @logger.info { "from block" }
+    assert_equal "from block", UnifiedLogger::Logger.custom_logs.last[:message]
+  end
+
+  test "block is not called when message is provided" do
+    called = false
+    @logger.info("direct") do
+      called = true
+      "from block"
+    end
+    assert_not called
+    assert_equal "direct", UnifiedLogger::Logger.custom_logs.last[:message]
   end
 
   test "debug does not log when level is INFO" do
@@ -192,16 +212,26 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
     assert_equal "hello", log[:message]
   end
 
-  test "omits blank params from log entry" do
-    @logger.info("hello")
+  test "does not sanitize hash messages" do
+    @logger.info({ key: "value with \"quotes\"" })
     log = UnifiedLogger::Logger.custom_logs.last
-    assert_not log.key?(:params)
+    assert_equal({ key: "value with \"quotes\"" }, log[:message])
   end
 
-  test "includes non-blank params in log entry" do
-    @logger.info("hello", { user_id: 1 })
+  test "does not sanitize array messages" do
+    @logger.info(["a   b", "\e[31mred\e[0m"])
     log = UnifiedLogger::Logger.custom_logs.last
-    assert_equal({ user_id: 1 }, log[:params])
+    assert_equal(["a   b", "\e[31mred\e[0m"], log[:message])
+  end
+
+  test "add with block and nil message uses block" do
+    @logger.add(::Logger::INFO) { "from add block" }
+    assert_equal "from add block", UnifiedLogger::Logger.custom_logs.last[:message]
+  end
+
+  test "add with nil message and progname uses progname as message" do
+    @logger.add(::Logger::INFO, nil, "progname")
+    assert_equal "progname", UnifiedLogger::Logger.custom_logs.last[:message]
   end
 
   # -- message sanitization --

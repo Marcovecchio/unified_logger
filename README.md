@@ -212,12 +212,13 @@ Every job will now produce a single log line with class name, queue, arguments, 
 Use standard logger methods anywhere in your code — they accept an optional params hash:
 
 ```ruby
-Rails.logger.info("Payment processed", amount: 100, currency: "BRL")
-Rails.logger.warn("Rate limit approaching", remaining: 5)
-Rails.logger.error("External API failed", service: "stripe", status: 502)
+Rails.logger.info("Payment processed")
+Rails.logger.info(message: "Payment processed", amount: 100, currency: "BRL")
+Rails.logger.warn("Rate limit approaching")
+Rails.logger.error(service: "stripe", status: 502, message: "External API failed")
 ```
 
-These calls are **not written immediately**. They are collected in a thread-safe buffer and included in the `custom` key of the enclosing request or job log line. This keeps all related information in a single event.
+The message can be a String, Hash, or Array — it is stored as-is and serialized to JSON. These calls are **not written immediately**. They are collected in a thread-safe buffer and included in the `custom` key of the enclosing request or job log line. This keeps all related information in a single event.
 
 ---
 
@@ -262,8 +263,7 @@ Each HTTP request produces a single JSON line:
     {
       "timestamp": "2026-03-22T14:30:00.000Z",
       "severity": "info",
-      "message": "Payment processed",
-      "params": { "amount": 100, "currency": "BRL" }
+      "message": { "message": "Payment processed", "amount": 100, "currency": "BRL" }
     }
   ]
 }
