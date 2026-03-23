@@ -1,6 +1,6 @@
 # UnifiedLogger
 
-[![Gem Version](https://badge.fury.io/rb/unified_logger.svg)](https://rubygems.org/gems/unified_logger)
+[![Gem Version](https://img.shields.io/gem/v/unified_logger)](https://rubygems.org/gems/unified_logger)
 [![CI](https://github.com/marcovecchio/unified_logger/actions/workflows/ci.yml/badge.svg)](https://github.com/marcovecchio/unified_logger/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -17,6 +17,7 @@ Rails default logging is noisy and unstructured:
 - In-app `Rails.logger` calls (e.g., `Rails.logger.info("Payment processed")`) are **written as standalone lines** that float away from the request or job that triggered them.
 - **Sensitive data** (passwords, tokens, cookies) can leak into logs unless you manually configure filtering everywhere.
 - Multi-threaded servers like Puma **interleave log lines** from concurrent requests, making debugging nearly impossible.
+- **Error backtraces are noisy and disconnected** — when something breaks, Rails dumps a multi-line backtrace full of framework noise, scattered across the log output with no link to the request that caused it. Error tracking tools like Sentry or Airbrake solve this, but UnifiedLogger includes a built-in cleaned backtrace attached to the request or job log line — enough to replace those tools in simpler setups.
 
 ## The Solution
 
@@ -209,7 +210,7 @@ Every job will now produce a single log line with class name, queue, arguments, 
 
 ### In-App Logging
 
-Use standard logger methods anywhere in your code — they accept an optional params hash:
+Use standard logger methods anywhere in your code:
 
 ```ruby
 Rails.logger.info("Payment processed")
@@ -226,11 +227,12 @@ The message can be a String, Hash, or Array — it is stored as-is and serialize
 
 ### Request Log
 
-Each HTTP request produces a single JSON line:
+Each HTTP request produces a single JSON line. All timestamps use **ISO 8601 with millisecond precision** (`2026-03-22T14:30:00.123Z`):
 
 ```json
 {
   "log_type": "request",
+  "timestamp": "2026-03-22T14:30:00.123Z",
   "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "ip": "192.168.1.1",
   "controller": "orders",
@@ -276,6 +278,7 @@ Each background job produces a single JSON line:
 ```json
 {
   "log_type": "job",
+  "timestamp": "2026-03-22T14:30:01.456Z",
   "class_name": "OrderConfirmationJob",
   "id": "f8e7d6c5-b4a3-2190-fedc-ba0987654321",
   "queue": "default",
@@ -285,7 +288,14 @@ Each background job produces a single JSON line:
   "enqueued_at": "2026-03-22T14:30:00.000Z",
   "locale": "en",
   "duration": 1.234,
-  "status": "ok"
+  "status": "ok",
+  "custom": [
+    {
+      "timestamp": "2026-03-22T14:30:01.789Z",
+      "severity": "info",
+      "message": "Order confirmation email sent"
+    }
+  ]
 }
 ```
 
