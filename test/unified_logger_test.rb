@@ -59,19 +59,19 @@ class UnifiedLoggerTest < UnifiedLoggerTestCase
     assert_nil UnifiedLogger.transform_job_log_callable
   end
 
-  test "log_transformer= stores the callable" do
+  test "format_log= stores the callable" do
     callable = lambda(&:to_json)
-    UnifiedLogger.log_transformer = callable
-    assert_same callable, UnifiedLogger.log_transformer
+    UnifiedLogger.format_log = callable
+    assert_same callable, UnifiedLogger.format_log_callable
   end
 
-  test "log_transformer= raises DoubleDefineError on second assignment" do
-    UnifiedLogger.log_transformer = -> {}
-    assert_raises(UnifiedLogger::DoubleDefineError) { UnifiedLogger.log_transformer = -> {} }
+  test "format_log= raises DoubleDefineError on second assignment" do
+    UnifiedLogger.format_log = -> {}
+    assert_raises(UnifiedLogger::DoubleDefineError) { UnifiedLogger.format_log = -> {} }
   end
 
-  test "log_transformer is nil by default" do
-    assert_nil UnifiedLogger.log_transformer
+  test "format_log_callable is nil by default" do
+    assert_nil UnifiedLogger.format_log_callable
   end
 
   # -- DoubleDefineError --

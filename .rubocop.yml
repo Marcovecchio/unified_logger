@@ -31,6 +31,9 @@ Style/OneClassPerFile:
 Style/FrozenStringLiteralComment:
   Enabled: false
 
+Style/SpecialGlobalVars:
+  Enabled: false
+
 Layout/LineLength:
   Max: 150
 

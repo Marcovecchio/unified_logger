@@ -173,8 +173,8 @@ class UnifiedLogger::JobLoggerTest < UnifiedLoggerTestCase
 
   # -- Transform job log callable --
 
-  test "calls transform_job_log_callable and merges result" do
-    UnifiedLogger.transform_job_log = ->(custom) { custom[:extra] = true }
+  test "calls transform_job_log_callable with log payload" do
+    UnifiedLogger.transform_job_log = ->(log) { log[:extra] = true }
     UnifiedLogger::JobLogger.log(@job) { "work" }
     log = parsed_log_from(@io)
     assert_equal true, log["extra"]

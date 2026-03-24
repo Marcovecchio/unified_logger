@@ -17,7 +17,7 @@ Rails default logging is noisy and unstructured:
 - In-app `Rails.logger` calls (e.g., `Rails.logger.info("Payment processed")`) are **written as standalone lines** that float away from the request or job that triggered them.
 - **Sensitive data** (passwords, tokens, cookies) can leak into logs unless you manually configure filtering everywhere.
 - Multi-threaded servers like Puma **interleave log lines** from concurrent requests, making debugging nearly impossible.
-- **Error backtraces are noisy and disconnected** — when something breaks, Rails dumps a multi-line backtrace full of framework noise, scattered across the log output with no link to the request that caused it. Error tracking tools like Sentry or Airbrake solve this, but UnifiedLogger includes a built-in cleaned backtrace attached to the request or job log line — enough to replace those tools in simpler setups.
+- **Error backtraces are noisy and disconnected** — when something breaks, Rails dumps a multi-line backtrace full of framework noise, scattered across the log output with no link to the request that caused it. You typically need a dedicated error tracking service like Sentry or Airbrake just to make sense of failures.
 
 ## The Solution
 
@@ -27,7 +27,7 @@ UnifiedLogger replaces this chaos with a single, structured JSON line per event:
 - **One line per job** — class name, queue, arguments, retry count, duration, status (`:ok`, `:warn`, `:error`), and any exceptions.
 - **In-app logs are captured** — every `Rails.logger.info(...)` call during a request or job is collected in a thread-safe buffer and included in that event's log line under the `custom` key.
 - **Sensitive data is filtered** out of the box — passwords, tokens, secrets, cookies, and more are replaced with `[FILTERED]`.
-- **Exceptions with cleaned backtraces** — when a request or job raises, the exception details (class, message, and backtrace) are observed and included in the log entry without any interference — no rescue, no re-raise, the error propagates naturally while UnifiedLogger records it via `ensure`.
+- **Exceptions with cleaned backtraces** — when a request or job raises, the exception details (class, message, and a cleaned backtrace with framework noise stripped out) are captured and included in the log entry. It's done without disturbing the exception or changing how it's handled.
 - **Log transform hooks** let you add tenant IDs, Datadog correlation, deploy versions, or anything else to every log line.
 
 ---
@@ -100,8 +100,6 @@ UnifiedLogger.configure(
 Here is a complete initializer showcasing all customization features. Copy it to `config/initializers/unified_logger.rb` and uncomment what you need:
 
 ```ruby
-require "pp"
-
 UnifiedLogger.configure(
   # If set to false, you need to manually add the middleware
   # auto_insert_middleware: true,
@@ -114,14 +112,19 @@ UnifiedLogger.configure(
 )
 
 def transform_log(log, env = nil)
-  if env
-    # Example of adding custom authentication info from the Rack environment
-    # log[:authentication] = env["authentication"]
+  # Round duration for readability
+  log[:duration] = log[:duration].round(4) if log[:duration].is_a?(Numeric)
 
-    # Example of adding custom request info from the Rack environment
-    # req = Rack::Request.new(env)
-    # log[:extra_log_field] = req.extra_log_field if req.respond_to?(:extra_log_field)
-  end
+  # Strip verbose fields and simplify custom log entries in development, for cleaner logs
+  # if Rails.env.development?
+  #   log[:request]&.delete(:headers)
+  #   log[:response]&.delete(:headers)
+  #   log.delete(:id)
+  #   log.delete(:ip)
+  #   log.delete(:thread_id)
+  #   log.delete(:process_id)
+  #   log[:custom] = log[:custom].map { |entry| entry[:message] } if log[:custom].is_a?(Array)
+  # end
 
   # Example of adding Datadog correlation info if Datadog tracing is available.
   # You can customize this to include any additional info your logging system supports or needs.
@@ -135,38 +138,47 @@ def transform_log(log, env = nil)
   #     version:  correlation.version.to_s
   #   }
   # end
+
+  # Since this method transforms logs for both requests and jobs, we need this guard clause,
+  # because jobs have no env object, and we will need it from now on.
+  return unless env.present?
+
+  # Example of adding custom authentication info from the Rack environment
+  # log[:authentication] = env["authentication"]
+
+  # Example of adding custom request info from the Rack environment
+  # req = Rack::Request.new(env)
+  # log[:extra_log_field] = req.extra_log_field if req.respond_to?(:extra_log_field)
 end
 
 def format_log(log)
-  # You can use this method to further customize the log output,
-  # for example by formatting it differently in development vs production.
-  log[:duration] = log[:duration].round(4) if log[:duration].is_a?(Numeric)
+  # Controls the final output format. Receives the filtered log hash, must return a string. Default (when not set) is JSON.
   if Rails.env.development?
+    require "pp"
     formatted = ""
     if log[:log_type] != :job
-      log[:request]&.delete(:headers)
-      log[:response]&.delete(:headers)
       formatted += "#{log.dig(:request, :method)} #{log.dig(:request, :path)} (#{log[:duration]}s)\n"
     end
-    log = log.except(:id, :ip, :thread_id, :process_id, :duration)
-    formatted + "#{log.pretty_inspect}\n---------------------------------------------------------"
+    formatted + log.pretty_inspect + "---------------------------------------------------------"
   else
     log.to_json
   end
 end
 
-# Finally, set the transform and formatter methods to the
-# respective configuration options in UnifiedLogger.
+# Set the transform_log method to request and job configuration options in UnifiedLogger.
+# In this case, a single method handles both.
 UnifiedLogger.transform_request_log = method(:transform_log)
 UnifiedLogger.transform_job_log = method(:transform_log)
-UnifiedLogger.log_transformer = method(:format_log)
+
+# Do the same for format_log method.
+UnifiedLogger.format_log = method(:format_log)
 ```
 
 ### What this does
 
-- **`transform_log`** — A single method used for both request and job enrichment. When called for requests, it receives the Rack `env` as the second argument; for jobs, `env` is `nil`. Add any fields you want to the `log` hash.
-- **`format_log`** — Controls the final output format. The example above shows a common pattern: human-readable pretty-printed output in development, and compact JSON in production.
-- **Wiring** — The last three lines assign these methods to UnifiedLogger's transform hooks. Note that each hook can only be assigned once (raises `DoubleDefineError` on reassignment), so set them in a single initializer.
+- **`transform_log`** — Receives the full log hash and (for requests) the Rack `env`. For jobs, `env`will be `nil`. You can add, modify, or delete any fields in-place — changes are applied directly since Ruby hashes are passed by reference.
+- **`format_log`** — Controls the final output format. Receives the filtered log hash and must return a string. When not set, the default is JSON. The example above shows a common pattern: human-readable pretty-printed output in development, and compact JSON in production.
+- **Wiring** — The last three lines assign these methods to UnifiedLogger's hooks. Each hook can only be assigned once (raises `DoubleDefineError` on reassignment), so set them in a single initializer.
 
 ---
 
@@ -357,7 +369,7 @@ The backtrace is cleaned using `ActiveSupport::BacktraceCleaner`: the project ro
                          │     - duration, thread/process   │
                          │     - exception (if any)         │
                          │  4. Drain custom log buffer      │
-                         │  5. Apply transform_request_log   │
+                         │  5. Apply transform hook          │
                          │  6. Filter sensitive params      │
                          │  7. Write single JSON line       │
                          │                                 │
@@ -412,14 +424,15 @@ The `UnifiedLogger::Railtie` inserts the `RequestLogger` middleware after `Actio
 
 ## Compatibility
 
-| | ActiveSupport 5.2 | 6.0 | 6.1 | 7.0 | 7.1 | 7.2 | 8.0 |
-|---|---|---|---|---|---|---|---|
-| **Ruby 2.5** | :white_check_mark: | | | | | | |
-| **Ruby 2.7** | | :white_check_mark: | :white_check_mark: | | | | |
-| **Ruby 3.0** | | | :white_check_mark: | :white_check_mark: | | | |
-| **Ruby 3.1** | | | | :white_check_mark: | :white_check_mark: | | |
-| **Ruby 3.2** | | | | | :white_check_mark: | :white_check_mark: | |
-| **Ruby 3.3** | | | | | | :white_check_mark: | :white_check_mark: |
+| | ActiveSupport 4.2 | 5.2 | 6.0 | 6.1 | 7.0 | 7.1 | 7.2 | 8.0 |
+|---|---|---|---|---|---|---|---|---|
+| **Ruby 2.4** | :white_check_mark: | | | | | | | |
+| **Ruby 2.5** | | :white_check_mark: | | | | | | |
+| **Ruby 2.7** | | | :white_check_mark: | :white_check_mark: | | | | |
+| **Ruby 3.0** | | | | :white_check_mark: | :white_check_mark: | | | |
+| **Ruby 3.1** | | | | | :white_check_mark: | :white_check_mark: | | |
+| **Ruby 3.2** | | | | | | :white_check_mark: | :white_check_mark: | |
+| **Ruby 3.3** | | | | | | | :white_check_mark: | :white_check_mark: |
 
 Minimum requirements: **Ruby >= 2.4**, **ActiveSupport >= 4.2**, **Rack >= 1.6**.
 

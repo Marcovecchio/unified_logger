@@ -1,5 +1,3 @@
-require "English"
-
 module UnifiedLogger
   class RequestLogger
     def initialize(app)
@@ -14,9 +12,7 @@ module UnifiedLogger
     ensure
       if UnifiedLogger.current_logger.is_a?(UnifiedLogger::Logger) && !silenced?(env["REQUEST_PATH"])
         log = build_log(started, env, status, headers, response)
-        custom = {}
-        UnifiedLogger.transform_request_log_callable&.call(custom, env)
-        log.merge!(custom)
+        UnifiedLogger.transform_request_log_callable&.call(log, env)
         UnifiedLogger.current_logger.write(UnifiedLogger::Logger.format(log))
       end
     end
@@ -59,7 +55,7 @@ module UnifiedLogger
         process_id: Process.pid,
         duration:   started ? UnifiedLogger.current_time - started : 0
       }
-      log[:exception] = UnifiedLogger::Logger.format_exception($ERROR_INFO) if $ERROR_INFO.present?
+      log[:exception] = UnifiedLogger::Logger.format_exception($!) if $!.present?
       log[:custom] = UnifiedLogger::Logger.fetch_and_reset_custom_logs if UnifiedLogger::Logger.custom_logs.any?
 
       log

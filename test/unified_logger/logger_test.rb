@@ -297,8 +297,8 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
     assert_equal({ "a" => 1 }, JSON.parse(result))
   end
 
-  test "calls custom log_transformer when present" do
-    UnifiedLogger.log_transformer = ->(log) { "CUSTOM:#{log}" }
+  test "calls custom format_log when present" do
+    UnifiedLogger.format_log = ->(log) { "CUSTOM:#{log}" }
     result = UnifiedLogger::Logger.format({ a: 1 })
     assert result.start_with?("CUSTOM:")
   end

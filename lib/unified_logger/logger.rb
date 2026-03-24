@@ -103,7 +103,7 @@ module UnifiedLogger
 
       def format(log)
         filtered_log = filter(log)
-        formatter = UnifiedLogger.log_transformer
+        formatter = UnifiedLogger.format_log_callable
         formatter.present? ? formatter.call(filtered_log) : filtered_log.to_json
       end
 

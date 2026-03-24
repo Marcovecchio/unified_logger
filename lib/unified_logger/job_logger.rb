@@ -1,5 +1,3 @@
-require "English"
-
 module UnifiedLogger
   class JobLogger
     DEFAULT_MAX_RETRIES = 5
@@ -29,16 +27,14 @@ module UnifiedLogger
         }
         log[:custom] = UnifiedLogger::Logger.fetch_and_reset_custom_logs if UnifiedLogger::Logger.custom_logs.any?
 
-        if $ERROR_INFO
-          log[:exception] = UnifiedLogger::Logger.format_exception($ERROR_INFO)
+        if $!
+          log[:exception] = UnifiedLogger::Logger.format_exception($!)
           log[:status] = job.executions >= DEFAULT_MAX_RETRIES ? :error : :warn
         else
           log[:status] = :ok
         end
 
-        custom = {}
-        UnifiedLogger.transform_job_log_callable&.call(custom)
-        log.merge!(custom)
+        UnifiedLogger.transform_job_log_callable&.call(log)
         UnifiedLogger.current_logger.write(UnifiedLogger::Logger.format(log))
       end
     end

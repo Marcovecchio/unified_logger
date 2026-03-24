@@ -34,7 +34,7 @@ module UnifiedLogger
   end
 
   class << self
-    attr_reader :transform_request_log_callable, :transform_job_log_callable, :log_transformer
+    attr_reader :transform_request_log_callable, :transform_job_log_callable, :format_log_callable
 
     def transform_request_log=(callable)
       raise DoubleDefineError, "transform_request_log already defined" if @transform_request_log_callable
@@ -48,10 +48,10 @@ module UnifiedLogger
       @transform_job_log_callable = callable
     end
 
-    def log_transformer=(callable)
-      raise DoubleDefineError, "log_transformer already defined" if @log_transformer
+    def format_log=(callable)
+      raise DoubleDefineError, "format_log already defined" if @format_log_callable
 
-      @log_transformer = callable
+      @format_log_callable = callable
     end
 
     delegate :trim, :format, :format_exception,

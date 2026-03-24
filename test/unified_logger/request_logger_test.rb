@@ -275,8 +275,8 @@ class UnifiedLogger::RequestLoggerTest < UnifiedLoggerTestCase
 
   # -- Transform request log callable --
 
-  test "calls transform_request_log_callable and merges result" do
-    UnifiedLogger.transform_request_log = ->(custom, _env) { custom[:extra_field] = "hello" }
+  test "calls transform_request_log_callable with log payload" do
+    UnifiedLogger.transform_request_log = ->(log, _env) { log[:extra_field] = "hello" }
     middleware = UnifiedLogger::RequestLogger.new(build_rack_app)
     middleware.call(build_rack_env)
 

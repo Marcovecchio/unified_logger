@@ -29,7 +29,7 @@ class UnifiedLoggerTestCase < ActiveSupport::TestCase
     UnifiedLogger.instance_variable_set(:@config, nil)
     UnifiedLogger.instance_variable_set(:@transform_request_log_callable, nil)
     UnifiedLogger.instance_variable_set(:@transform_job_log_callable, nil)
-    UnifiedLogger.instance_variable_set(:@log_transformer, nil)
+    UnifiedLogger.instance_variable_set(:@format_log_callable, nil)
     UnifiedLogger::Logger.reset_thread_logs
   end
 
