@@ -1,6 +1,7 @@
 module UnifiedLogger
   class Logger < ::Logger
     CUSTOM_LOGS = Concurrent::ThreadLocalVar.new([])
+    EXTRA_LOG_FIELDS = Concurrent::ThreadLocalVar.new({})
     SEVERITY_LEVELS = {
       debug:   ::Logger::DEBUG,
       info:    ::Logger::INFO,
@@ -61,13 +62,28 @@ module UnifiedLogger
         CUSTOM_LOGS.value
       end
 
+      def add(hash)
+        EXTRA_LOG_FIELDS.value = EXTRA_LOG_FIELDS.value.merge(hash)
+      end
+
+      def extra_log_fields
+        EXTRA_LOG_FIELDS.value
+      end
+
+      def fetch_and_reset_extra_log_fields
+        fields = extra_log_fields
+        EXTRA_LOG_FIELDS.value = {}
+        fields
+      end
+
       def reset_thread_logs
         CUSTOM_LOGS.value = []
+        EXTRA_LOG_FIELDS.value = {}
       end
 
       def fetch_and_reset_custom_logs
         logs = custom_logs
-        reset_thread_logs
+        CUSTOM_LOGS.value = []
         logs
       end
 

@@ -234,6 +234,44 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
     assert_equal "progname", UnifiedLogger::Logger.custom_logs.last[:message]
   end
 
+  # -- extra_log_fields (thread-local) --
+
+  test "add stores fields in thread-local" do
+    UnifiedLogger::Logger.add(user_id: 1)
+    assert_equal({ user_id: 1 }, UnifiedLogger::Logger.extra_log_fields)
+  end
+
+  test "add merges multiple calls" do
+    UnifiedLogger::Logger.add(user_id: 1)
+    UnifiedLogger::Logger.add(order_id: 42)
+    assert_equal({ user_id: 1, order_id: 42 }, UnifiedLogger::Logger.extra_log_fields)
+  end
+
+  test "add accepts nested hashes" do
+    UnifiedLogger::Logger.add(metadata: { source: "web", version: "2.0" })
+    assert_equal({ metadata: { source: "web", version: "2.0" } }, UnifiedLogger::Logger.extra_log_fields)
+  end
+
+  test "extra_log_fields is thread-local" do
+    UnifiedLogger::Logger.add(user_id: 1)
+    thread_fields = Thread.new { UnifiedLogger::Logger.extra_log_fields }.value
+    assert_empty thread_fields
+  end
+
+  test "fetch_and_reset_extra_log_fields returns fields and clears" do
+    UnifiedLogger::Logger.add(user_id: 1)
+    UnifiedLogger::Logger.add(order_id: 42)
+    fields = UnifiedLogger::Logger.fetch_and_reset_extra_log_fields
+    assert_equal({ user_id: 1, order_id: 42 }, fields)
+    assert_empty UnifiedLogger::Logger.extra_log_fields
+  end
+
+  test "reset_thread_logs also clears extra_log_fields" do
+    UnifiedLogger::Logger.add(user_id: 1)
+    UnifiedLogger::Logger.reset_thread_logs
+    assert_empty UnifiedLogger::Logger.extra_log_fields
+  end
+
   # -- message sanitization --
 
   test "strips ANSI escape codes from logged message" do

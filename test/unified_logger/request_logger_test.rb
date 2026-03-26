@@ -289,6 +289,40 @@ class UnifiedLogger::RequestLoggerTest < UnifiedLoggerTestCase
     assert_nothing_raised { middleware.call(build_rack_env) }
   end
 
+  # -- Extra log fields integration --
+
+  test "merges extra_log_fields into request log" do
+    app = lambda do |_env|
+      UnifiedLogger::Logger.add(user_id: 123, order_id: 456)
+      [200, { "content-type" => "application/json" }, ['{"ok":true}']]
+    end
+    middleware = UnifiedLogger::RequestLogger.new(app)
+    middleware.call(build_rack_env)
+
+    log = parsed_log_from(@io)
+    assert_equal 123, log["user_id"]
+    assert_equal 456, log["order_id"]
+  end
+
+  test "resets extra_log_fields after request" do
+    app = lambda do |_env|
+      UnifiedLogger::Logger.add(user_id: 123)
+      [200, { "content-type" => "application/json" }, ['{"ok":true}']]
+    end
+    middleware = UnifiedLogger::RequestLogger.new(app)
+    middleware.call(build_rack_env)
+
+    assert_empty UnifiedLogger::Logger.extra_log_fields
+  end
+
+  test "omits extra fields when none set" do
+    middleware = UnifiedLogger::RequestLogger.new(build_rack_app)
+    middleware.call(build_rack_env)
+
+    log = parsed_log_from(@io)
+    assert_not log.key?("user_id")
+  end
+
   # -- Query string parsing --
 
   test "parses query string into query_params" do

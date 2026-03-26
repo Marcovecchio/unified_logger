@@ -180,6 +180,27 @@ UnifiedLogger.format_log = method(:format_log)
 - **`format_log`** — Controls the final output format. Receives the filtered log hash and must return a string. When not set, the default is JSON. The example above shows a common pattern: human-readable pretty-printed output in development, and compact JSON in production.
 - **Wiring** — The last three lines assign these methods to UnifiedLogger's hooks. Each hook can only be assigned once (raises `DoubleDefineError` on reassignment), so set them in a single initializer.
 
+### Adding custom fields from controllers
+
+Use `UnifiedLogger.add` to merge fields directly into the current request or job log. It accepts a Hash with any internal structure:
+
+```ruby
+class OrdersController < ApplicationController
+  def create
+    order = Order.create!(order_params)
+    UnifiedLogger.add(order_id: order.id, user_id: current_user.id)
+  end
+end
+```
+
+The fields are stored in thread-local storage (like `custom_logs`), so they are per-request and thread-safe. When the request finishes, they are merged into the main log hash:
+
+```json
+{ "log_type": "request", "...", "order_id": 123, "user_id": 456 }
+```
+
+You can call `add` multiple times — each call merges into the same hash. This works in both requests and jobs.
+
 ---
 
 ## Usage

@@ -171,6 +171,30 @@ class UnifiedLogger::JobLoggerTest < UnifiedLoggerTestCase
     assert_not log.key?("custom")
   end
 
+  # -- Extra log fields integration --
+
+  test "merges extra_log_fields into job log" do
+    UnifiedLogger::JobLogger.log(@job) do
+      UnifiedLogger::Logger.add(user_id: 123, batch_id: "xyz")
+    end
+    log = parsed_log_from(@io)
+    assert_equal 123, log["user_id"]
+    assert_equal "xyz", log["batch_id"]
+  end
+
+  test "resets extra_log_fields after job" do
+    UnifiedLogger::JobLogger.log(@job) do
+      UnifiedLogger::Logger.add(user_id: 123)
+    end
+    assert_empty UnifiedLogger::Logger.extra_log_fields
+  end
+
+  test "omits extra fields when none set" do
+    UnifiedLogger::JobLogger.log(@job) { "work" }
+    log = parsed_log_from(@io)
+    assert_not log.key?("user_id")
+  end
+
   # -- Transform job log callable --
 
   test "calls transform_job_log_callable with log payload" do

@@ -130,4 +130,23 @@ class UnifiedLoggerTest < UnifiedLoggerTestCase
     UnifiedLogger.reset_thread_logs
     assert_empty UnifiedLogger.custom_logs
   end
+
+  # -- add / extra_log_fields delegation --
+
+  test "add delegates to Logger" do
+    UnifiedLogger.add(user_id: 1)
+    assert_equal({ user_id: 1 }, UnifiedLogger::Logger.extra_log_fields)
+  end
+
+  test "extra_log_fields delegates to Logger" do
+    UnifiedLogger::Logger.add(order_id: 42)
+    assert_equal({ order_id: 42 }, UnifiedLogger.extra_log_fields)
+  end
+
+  test "fetch_and_reset_extra_log_fields delegates to Logger" do
+    UnifiedLogger.add(user_id: 1)
+    fields = UnifiedLogger.fetch_and_reset_extra_log_fields
+    assert_equal({ user_id: 1 }, fields)
+    assert_empty UnifiedLogger.extra_log_fields
+  end
 end
