@@ -227,19 +227,57 @@ use UnifiedLogger::RequestLogger
 run MyApp
 ```
 
-### ActiveJob
+### Background Jobs
 
-Wrap job execution with `JobLogger` in your base job class:
+`JobLogger.log` works with any job engine — ActiveJob, Sidekiq, GoodJob, Que, or anything else. Pass job attributes as keyword arguments:
+
+```ruby
+UnifiedLogger::JobLogger.log(
+  class_name: "OrderConfirmationJob",
+  id:         job_id,
+  queue:      queue_name,
+  params:     arguments,
+  retry_count: retry_attempt,
+  max_retries: max_allowed,
+  enqueued_at: enqueued_timestamp
+) { perform_the_job }
+```
+
+`class_name` is the only required argument. All others are optional.
+
+#### ActiveJob
 
 ```ruby
 class ApplicationJob < ActiveJob::Base
   around_perform do |job, block|
-    UnifiedLogger::JobLogger.log(job) { block.call }
+    UnifiedLogger::JobLogger.log(
+      class_name:           job.class.name,
+      id:                   job.job_id,
+      queue:                job.queue_name,
+      params:               job.arguments,
+      retry_count:          job.executions,
+      enqueued_at:          job.enqueued_at,
+      locale:               job.locale,
+      exception_executions: job.exception_executions
+    ) { block.call }
   end
 end
 ```
 
-Every job will now produce a single log line with class name, queue, arguments, retry count, duration, and status.
+#### Sidekiq
+
+For Sidekiq (native workers or as an ActiveJob backend), add a single require:
+
+```ruby
+# config/initializers/sidekiq.rb
+require "unified_logger/sidekiq"
+```
+
+This auto-registers a Sidekiq server middleware that logs all job executions — both native `Sidekiq::Job` workers and ActiveJob-wrapped jobs. No `around_perform` hook needed.
+
+**Note:** The `unified_logger` gem does not depend on `sidekiq`. The middleware is loaded only when you explicitly require it.
+
+Every job produces a single log line with class name, queue, arguments, retry count, duration, queue duration, and status.
 
 ### In-App Logging
 
@@ -316,11 +354,12 @@ Each background job produces a single JSON line:
   "id": "f8e7d6c5-b4a3-2190-fedc-ba0987654321",
   "queue": "default",
   "params": [99],
-  "executions_count": 0,
-  "exception_executions": {},
+  "retry_count": 0,
   "enqueued_at": "2026-03-22T14:30:00.000Z",
-  "locale": "en",
-  "duration": 1.234,
+  "duration": 0.234,
+  "queue_duration": 1.456,
+  "thread_id": 70368818150320,
+  "process_id": 12345,
   "status": "ok",
   "custom": [
     {
@@ -332,7 +371,11 @@ Each background job produces a single JSON line:
 }
 ```
 
-When a job fails and will be retried, `status` is `"warn"`. When it fails and has exhausted retries (default: 5), `status` is `"error"` and an `exception` key is included with `class_name`, `message`, and a cleaned `backtrace`.
+- `duration` — how long the job took to execute.
+- `queue_duration` — time from enqueue to execution start (only present when `enqueued_at` is provided).
+- Extra kwargs (like `locale`, `exception_executions`) are merged into the log as top-level keys.
+
+When a job fails and `max_retries` is provided with retries remaining, `status` is `"warn"`. When retries are exhausted or `max_retries` is not provided, `status` is `"error"` and an `exception` key is included with `class_name`, `message`, and a cleaned `backtrace`.
 
 ### Exception with Backtrace
 

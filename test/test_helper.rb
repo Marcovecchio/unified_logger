@@ -59,19 +59,6 @@ class UnifiedLoggerTestCase < ActiveSupport::TestCase
     env
   end
 
-  def build_fake_job(overrides = {})
-    defaults = {
-      job_id:               "abc-123",
-      queue_name:           "default",
-      arguments:            [1, "two"],
-      executions:           0,
-      exception_executions: {},
-      enqueued_at:          1.minute.ago.iso8601,
-      locale:               "en"
-    }
-    FakeJob.new(**defaults, **overrides)
-  end
-
   def skip_unless_parameter_filter!
     skip "No ParameterFilter available" unless defined?(ActiveSupport::ParameterFilter) ||
                                                defined?(ActionDispatch::Http::ParameterFilter)
@@ -84,17 +71,3 @@ class UnifiedLoggerTestCase < ActiveSupport::TestCase
   end
 end
 
-class FakeJob
-  attr_accessor :job_id, :queue_name, :arguments, :executions,
-                :exception_executions, :enqueued_at, :locale
-
-  def initialize(job_id:, queue_name:, arguments:, executions:, exception_executions:, enqueued_at:, locale:)
-    @job_id = job_id
-    @queue_name = queue_name
-    @arguments = arguments
-    @executions = executions
-    @exception_executions = exception_executions
-    @enqueued_at = enqueued_at
-    @locale = locale
-  end
-end
