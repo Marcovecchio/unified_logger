@@ -2,8 +2,8 @@ require "unified_logger"
 
 module UnifiedLogger
   class SidekiqServerMiddleware
-    def call(job_instance, job_hash, queue)
-      UnifiedLogger::JobLogger.log(**attrs_from(job_instance, job_hash, queue)) { yield }
+    def call(job_instance, job_hash, queue, &)
+      UnifiedLogger::JobLogger.log(**attrs_from(job_instance, job_hash, queue), &)
     end
 
     private
@@ -18,9 +18,15 @@ module UnifiedLogger
         queue:       queue,
         params:      aj&.[]("arguments") || job_hash["args"],
         retry_count: job_hash["retry_count"].to_i,
-        max_retries: retries.is_a?(Integer) ? retries : (retries == false ? 0 : 25),
+        max_retries: resolve_max_retries(retries),
         enqueued_at: aj&.[]("enqueued_at") || job_hash["enqueued_at"]
       }.compact
+    end
+
+    def resolve_max_retries(retries)
+      return retries if retries.is_a?(Integer)
+
+      retries == false ? 0 : 25
     end
   end
 end

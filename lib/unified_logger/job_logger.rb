@@ -7,8 +7,9 @@ module UnifiedLogger
         yield
       ensure
         if UnifiedLogger.current_logger.is_a?(UnifiedLogger::Logger)
-          write_log(class_name:, id:, queue:, params:, enqueued_at:,
-                    retry_count:, max_retries:, started:, **extra)
+          write_log(class_name: class_name, id: id, queue: queue, params: params,
+                    enqueued_at: enqueued_at, retry_count: retry_count,
+                    max_retries: max_retries, started: started, **extra)
         end
       end
 
