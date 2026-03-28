@@ -2,8 +2,8 @@ require "unified_logger"
 
 module UnifiedLogger
   class SidekiqServerMiddleware
-    def call(job_instance, job_hash, queue, &)
-      UnifiedLogger::JobLogger.log(**attrs_from(job_instance, job_hash, queue), &)
+    def call(job_instance, job_hash, queue)
+      UnifiedLogger::JobLogger.log(**attrs_from(job_instance, job_hash, queue)) { yield } # rubocop:disable Style/ExplicitBlockArgument
     end
 
     private

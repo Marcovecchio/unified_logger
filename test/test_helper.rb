@@ -70,4 +70,3 @@ class UnifiedLoggerTestCase < ActiveSupport::TestCase
     JSON.parse(output.split("\n").last)
   end
 end
-

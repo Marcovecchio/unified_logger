@@ -98,7 +98,7 @@ class UnifiedLogger::JobLoggerTest < UnifiedLoggerTestCase
   end
 
   test "queue_duration is calculated when enqueued_at is present" do
-    UnifiedLogger::JobLogger.log(**@attrs.merge(enqueued_at: 5.minutes.ago.iso8601)) { "work" }
+    UnifiedLogger::JobLogger.log(**@attrs, enqueued_at: 5.minutes.ago.iso8601) { "work" }
     log = parsed_log_from(@io)
     assert_kind_of Numeric, log["queue_duration"]
     assert log["queue_duration"].positive?
@@ -113,20 +113,20 @@ class UnifiedLogger::JobLoggerTest < UnifiedLoggerTestCase
   # -- enqueued_at normalization --
 
   test "enqueued_at as epoch float produces valid queue_duration" do
-    UnifiedLogger::JobLogger.log(**@attrs.merge(enqueued_at: 5.minutes.ago.to_f)) { "work" }
+    UnifiedLogger::JobLogger.log(**@attrs, enqueued_at: 5.minutes.ago.to_f) { "work" }
     log = parsed_log_from(@io)
     assert_kind_of Numeric, log["queue_duration"]
     assert log["queue_duration"].positive?
   end
 
   test "enqueued_at as ISO 8601 string produces valid queue_duration" do
-    UnifiedLogger::JobLogger.log(**@attrs.merge(enqueued_at: 5.minutes.ago.iso8601)) { "work" }
+    UnifiedLogger::JobLogger.log(**@attrs, enqueued_at: 5.minutes.ago.iso8601) { "work" }
     log = parsed_log_from(@io)
     assert_kind_of Numeric, log["queue_duration"]
   end
 
   test "enqueued_at as Time object produces valid queue_duration" do
-    UnifiedLogger::JobLogger.log(**@attrs.merge(enqueued_at: 5.minutes.ago)) { "work" }
+    UnifiedLogger::JobLogger.log(**@attrs, enqueued_at: 5.minutes.ago) { "work" }
     log = parsed_log_from(@io)
     assert_kind_of Numeric, log["queue_duration"]
   end
