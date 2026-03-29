@@ -4,7 +4,7 @@
 [![CI](https://github.com/marcovecchio/unified_logger/actions/workflows/ci.yml/badge.svg)](https://github.com/marcovecchio/unified_logger/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Structured JSON logging for Ruby Rack and Rails applications. One log line per request. One log line per job. Everything you need, at the right place.
+Structured JSON logging for Ruby Rack and Rails applications. One log line per request. One log line per job. All the context, none of the noise.
 
 ---
 
@@ -13,7 +13,7 @@ Structured JSON logging for Ruby Rack and Rails applications. One log line per r
 Rails default logging is noisy and unstructured:
 
 - A single HTTP request produces **multiple log lines** spread across the output — started, parameters, rendered, completed — making it painful to correlate in log aggregators like Datadog, Elasticsearch, or CloudWatch.
-- **Background job logs are disconnected** from the request that enqueued them, with no structured metadata about retries, duration, or failure status.
+- **Background job logging is bare-bones** — no structured metadata about class name, queue, arguments, retry count, duration, or failure status. You're left with Rails' generic "Performed job" line and nothing useful to search or alert on.
 - In-app `Rails.logger` calls (e.g., `Rails.logger.info("Payment processed")`) are **written as standalone lines** that float away from the request or job that triggered them.
 - **Sensitive data** (passwords, tokens, cookies) can leak into logs unless you manually configure filtering everywhere.
 - Multi-threaded servers like Puma **interleave log lines** from concurrent requests, making debugging nearly impossible.
