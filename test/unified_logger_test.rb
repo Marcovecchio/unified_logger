@@ -111,24 +111,24 @@ class UnifiedLoggerTest < UnifiedLoggerTestCase
     assert_equal({ message: "boom" }, result)
   end
 
-  test "custom_logs delegates to Logger" do
+  test "logs delegates to Logger" do
     UnifiedLogger::Logger.new($stdout).info("test")
-    logs = UnifiedLogger.custom_logs
+    logs = UnifiedLogger.logs
     assert_equal 1, logs.size
     assert_equal :info, logs.first[:severity]
   end
 
-  test "fetch_and_reset_custom_logs delegates to Logger" do
+  test "fetch_and_reset_logs delegates to Logger" do
     UnifiedLogger::Logger.new($stdout).info("test")
-    logs = UnifiedLogger.fetch_and_reset_custom_logs
+    logs = UnifiedLogger.fetch_and_reset_logs
     assert_equal 1, logs.size
-    assert_empty UnifiedLogger.custom_logs
+    assert_empty UnifiedLogger.logs
   end
 
   test "reset_thread_logs delegates to Logger" do
     UnifiedLogger::Logger.new($stdout).info("test")
     UnifiedLogger.reset_thread_logs
-    assert_empty UnifiedLogger.custom_logs
+    assert_empty UnifiedLogger.logs
   end
 
   # -- add / extra_log_fields delegation --

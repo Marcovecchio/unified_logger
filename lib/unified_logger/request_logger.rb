@@ -56,7 +56,7 @@ module UnifiedLogger
         duration:   started ? UnifiedLogger.current_time - started : 0
       }
       log[:exception] = UnifiedLogger::Logger.format_exception($!) if $!.present?
-      log[:custom] = UnifiedLogger::Logger.fetch_and_reset_custom_logs if UnifiedLogger::Logger.custom_logs.any?
+      log[:logs] = UnifiedLogger::Logger.fetch_and_reset_logs if UnifiedLogger::Logger.logs.any?
       log.merge!(UnifiedLogger::Logger.fetch_and_reset_extra_log_fields) if UnifiedLogger::Logger.extra_log_fields.any?
 
       log

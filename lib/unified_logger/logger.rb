@@ -1,6 +1,6 @@
 module UnifiedLogger
   class Logger < ::Logger
-    CUSTOM_LOGS = Concurrent::ThreadLocalVar.new([])
+    LOGS = Concurrent::ThreadLocalVar.new([])
     EXTRA_LOG_FIELDS = Concurrent::ThreadLocalVar.new({})
     SEVERITY_LEVELS = {
       debug:   ::Logger::DEBUG,
@@ -58,8 +58,8 @@ module UnifiedLogger
     end
 
     class << self
-      def custom_logs
-        CUSTOM_LOGS.value
+      def logs
+        LOGS.value
       end
 
       def add(hash)
@@ -77,14 +77,14 @@ module UnifiedLogger
       end
 
       def reset_thread_logs
-        CUSTOM_LOGS.value = []
+        LOGS.value = []
         EXTRA_LOG_FIELDS.value = {}
       end
 
-      def fetch_and_reset_custom_logs
-        logs = custom_logs
-        CUSTOM_LOGS.value = []
-        logs
+      def fetch_and_reset_logs
+        current = logs
+        LOGS.value = []
+        current
       end
 
       def trim(data)
@@ -148,16 +148,16 @@ module UnifiedLogger
       return true unless severity >= level
 
       severity_symbol = SEVERITY_MAP[severity] || :unknown
-      append_custom_log(severity_symbol, message)
+      append_log(severity_symbol, message)
     end
 
     private
 
-    def append_custom_log(severity, message)
+    def append_log(severity, message)
       message = sanitize_log_message(message) if message.is_a?(String)
       log_hash = { timestamp: UnifiedLogger.formatted_time, severity: severity, message: message }
 
-      CUSTOM_LOGS.value = CUSTOM_LOGS.value + [log_hash]
+      LOGS.value = LOGS.value + [log_hash]
     end
 
     def sanitize_log_message(text)

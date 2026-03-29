@@ -239,9 +239,9 @@ class UnifiedLogger::RequestLoggerTest < UnifiedLoggerTestCase
     assert_equal 500, log["response"]["status"]
   end
 
-  # -- Custom logs integration --
+  # -- Logs integration --
 
-  test "includes custom logs when present" do
+  test "includes logs when present" do
     app = lambda do |_env|
       @logger.info("inside request")
       [200, { "content-type" => "application/json" }, ['{"ok":true}']]
@@ -250,11 +250,11 @@ class UnifiedLogger::RequestLoggerTest < UnifiedLoggerTestCase
     middleware.call(build_rack_env)
 
     log = parsed_log_from(@io)
-    assert log.key?("custom")
-    assert_equal 1, log["custom"].size
+    assert log.key?("logs")
+    assert_equal 1, log["logs"].size
   end
 
-  test "resets custom logs after request" do
+  test "resets logs after request" do
     app = lambda do |_env|
       @logger.info("inside")
       [200, { "content-type" => "application/json" }, ['{"ok":true}']]
@@ -262,15 +262,15 @@ class UnifiedLogger::RequestLoggerTest < UnifiedLoggerTestCase
     middleware = UnifiedLogger::RequestLogger.new(app)
     middleware.call(build_rack_env)
 
-    assert_empty UnifiedLogger::Logger.custom_logs
+    assert_empty UnifiedLogger::Logger.logs
   end
 
-  test "omits custom key when no custom logs" do
+  test "omits logs key when no logs" do
     middleware = UnifiedLogger::RequestLogger.new(build_rack_app)
     middleware.call(build_rack_env)
 
     log = parsed_log_from(@io)
-    assert_not log.key?("custom")
+    assert_not log.key?("logs")
   end
 
   # -- Transform request log callable --

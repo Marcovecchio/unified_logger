@@ -235,15 +235,15 @@ class UnifiedLogger::SidekiqServerMiddlewareTest < UnifiedLoggerTestCase
     assert log["queue_duration"].positive?
   end
 
-  # -- Custom logs and extra fields --
+  # -- Logs and extra fields --
 
-  test "includes custom logs when present" do
+  test "includes logs when present" do
     @middleware.call(@worker, native_job_hash, "default") do
       @logger.info("inside job")
     end
     log = parsed_log_from(@io)
-    assert log.key?("custom")
-    assert_equal 1, log["custom"].size
+    assert log.key?("logs")
+    assert_equal 1, log["logs"].size
   end
 
   test "merges extra_log_fields" do

@@ -18,49 +18,49 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
 
   # -- Severity methods --
 
-  test "debug appends a custom log with debug severity" do
+  test "debug appends a log with debug severity" do
     @logger.debug("test message")
-    assert_equal :debug, UnifiedLogger::Logger.custom_logs.last[:severity]
+    assert_equal :debug, UnifiedLogger::Logger.logs.last[:severity]
   end
 
-  test "info appends a custom log with info severity" do
+  test "info appends a log with info severity" do
     @logger.info("test message")
-    assert_equal :info, UnifiedLogger::Logger.custom_logs.last[:severity]
+    assert_equal :info, UnifiedLogger::Logger.logs.last[:severity]
   end
 
-  test "warn appends a custom log with warn severity" do
+  test "warn appends a log with warn severity" do
     @logger.warn("test message")
-    assert_equal :warn, UnifiedLogger::Logger.custom_logs.last[:severity]
+    assert_equal :warn, UnifiedLogger::Logger.logs.last[:severity]
   end
 
-  test "error appends a custom log with error severity" do
+  test "error appends a log with error severity" do
     @logger.error("test message")
-    assert_equal :error, UnifiedLogger::Logger.custom_logs.last[:severity]
+    assert_equal :error, UnifiedLogger::Logger.logs.last[:severity]
   end
 
-  test "fatal appends a custom log with fatal severity" do
+  test "fatal appends a log with fatal severity" do
     @logger.fatal("test message")
-    assert_equal :fatal, UnifiedLogger::Logger.custom_logs.last[:severity]
+    assert_equal :fatal, UnifiedLogger::Logger.logs.last[:severity]
   end
 
-  test "unknown appends a custom log with unknown severity" do
+  test "unknown appends a log with unknown severity" do
     @logger.unknown("test message")
-    assert_equal :unknown, UnifiedLogger::Logger.custom_logs.last[:severity]
+    assert_equal :unknown, UnifiedLogger::Logger.logs.last[:severity]
   end
 
   test "accepts a hash as message" do
     @logger.info({ user_id: 1, action: "login" })
-    assert_equal({ user_id: 1, action: "login" }, UnifiedLogger::Logger.custom_logs.last[:message])
+    assert_equal({ user_id: 1, action: "login" }, UnifiedLogger::Logger.logs.last[:message])
   end
 
   test "accepts an array as message" do
     @logger.info(%w[item1 item2])
-    assert_equal(%w[item1 item2], UnifiedLogger::Logger.custom_logs.last[:message])
+    assert_equal(%w[item1 item2], UnifiedLogger::Logger.logs.last[:message])
   end
 
   test "accepts a block as message" do
     @logger.info { "from block" }
-    assert_equal "from block", UnifiedLogger::Logger.custom_logs.last[:message]
+    assert_equal "from block", UnifiedLogger::Logger.logs.last[:message]
   end
 
   test "block is not called when message is provided" do
@@ -70,60 +70,60 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
       "from block"
     end
     assert_not called
-    assert_equal "direct", UnifiedLogger::Logger.custom_logs.last[:message]
+    assert_equal "direct", UnifiedLogger::Logger.logs.last[:message]
   end
 
   test "debug does not log when level is INFO" do
     @logger.level = ::Logger::INFO
     @logger.debug("should not appear")
-    assert_empty UnifiedLogger::Logger.custom_logs
+    assert_empty UnifiedLogger::Logger.logs
   end
 
   test "info logs when level is INFO" do
     @logger.level = ::Logger::INFO
     @logger.info("should appear")
-    assert_equal 1, UnifiedLogger::Logger.custom_logs.size
+    assert_equal 1, UnifiedLogger::Logger.logs.size
   end
 
   test "warn does not log when level is ERROR" do
     @logger.level = ::Logger::ERROR
     @logger.warn("should not appear")
-    assert_empty UnifiedLogger::Logger.custom_logs
+    assert_empty UnifiedLogger::Logger.logs
   end
 
   # -- nil / empty / below-level messages --
 
-  test "nil message does not append a custom log" do
+  test "nil message does not append a log" do
     @logger.info(nil)
-    assert_empty UnifiedLogger::Logger.custom_logs
+    assert_empty UnifiedLogger::Logger.logs
   end
 
-  test "empty string message does not append a custom log" do
+  test "empty string message does not append a log" do
     @logger.info("")
-    assert_empty UnifiedLogger::Logger.custom_logs
+    assert_empty UnifiedLogger::Logger.logs
   end
 
-  test "message below level does not append a custom log" do
+  test "message below level does not append a log" do
     @logger.level = ::Logger::ERROR
     @logger.debug("test")
-    assert_empty UnifiedLogger::Logger.custom_logs
+    assert_empty UnifiedLogger::Logger.logs
   end
 
   test "unknown method maps to unknown severity" do
     @logger.unknown("test")
-    assert_equal :unknown, UnifiedLogger::Logger.custom_logs.last[:severity]
+    assert_equal :unknown, UnifiedLogger::Logger.logs.last[:severity]
   end
 
   # -- << (shovel) operator --
 
   test "shovel appends log with unknown severity" do
     @logger << "message"
-    assert_equal :unknown, UnifiedLogger::Logger.custom_logs.last[:severity]
+    assert_equal :unknown, UnifiedLogger::Logger.logs.last[:severity]
   end
 
   test "shovel strips trailing newline" do
     @logger << "hello\n"
-    assert_equal "hello", UnifiedLogger::Logger.custom_logs.last[:message]
+    assert_equal "hello", UnifiedLogger::Logger.logs.last[:message]
   end
 
   test "shovel returns self for chaining" do
@@ -144,22 +144,22 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
     assert_nothing_raised { logger.write("hello") }
   end
 
-  # -- custom_logs (thread-local) --
+  # -- logs (thread-local) --
 
-  test "custom_logs returns empty array initially" do
-    assert_equal [], UnifiedLogger::Logger.custom_logs
+  test "logs returns empty array initially" do
+    assert_equal [], UnifiedLogger::Logger.logs
   end
 
-  test "custom_logs is thread-local" do
+  test "logs is thread-local" do
     @logger.info("main thread")
-    thread_logs = Thread.new { UnifiedLogger::Logger.custom_logs }.value
+    thread_logs = Thread.new { UnifiedLogger::Logger.logs }.value
     assert_empty thread_logs
   end
 
-  test "reset_thread_logs clears custom logs" do
+  test "reset_thread_logs clears logs" do
     @logger.info("test")
     UnifiedLogger::Logger.reset_thread_logs
-    assert_empty UnifiedLogger::Logger.custom_logs
+    assert_empty UnifiedLogger::Logger.logs
   end
 
   test "reset_thread_logs does not affect other threads" do
@@ -167,7 +167,7 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
     t = Thread.new do
       UnifiedLogger::Logger.new($stdout).info("other")
       sleep 0.1
-      other_thread_logs = UnifiedLogger::Logger.custom_logs
+      other_thread_logs = UnifiedLogger::Logger.logs
     end
     sleep 0.05
     UnifiedLogger::Logger.reset_thread_logs
@@ -175,16 +175,16 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
     assert_equal 1, other_thread_logs.size
   end
 
-  test "fetch_and_reset_custom_logs returns logs and clears" do
+  test "fetch_and_reset_logs returns accumulated logs and clears" do
     @logger.info("one")
     @logger.warn("two")
-    logs = UnifiedLogger::Logger.fetch_and_reset_custom_logs
+    logs = UnifiedLogger::Logger.fetch_and_reset_logs
     assert_equal 2, logs.size
-    assert_empty UnifiedLogger::Logger.custom_logs
+    assert_empty UnifiedLogger::Logger.logs
   end
 
-  test "fetch_and_reset_custom_logs returns empty array when no logs" do
-    assert_equal [], UnifiedLogger::Logger.fetch_and_reset_custom_logs
+  test "fetch_and_reset_logs returns empty array when no logs" do
+    assert_equal [], UnifiedLogger::Logger.fetch_and_reset_logs
   end
 
   test "concurrent threads do not interfere" do
@@ -192,7 +192,7 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
       Thread.new do
         logger = UnifiedLogger::Logger.new($stdout)
         10.times { logger.info("thread-#{i}") }
-        UnifiedLogger::Logger.custom_logs
+        UnifiedLogger::Logger.logs
       end
     end
     results = threads.map(&:value)
@@ -206,7 +206,7 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
 
   test "log entry includes timestamp, severity, and message" do
     @logger.info("hello")
-    log = UnifiedLogger::Logger.custom_logs.last
+    log = UnifiedLogger::Logger.logs.last
     assert log.key?(:timestamp)
     assert_equal :info, log[:severity]
     assert_equal "hello", log[:message]
@@ -214,24 +214,24 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
 
   test "does not sanitize hash messages" do
     @logger.info({ key: "value with \"quotes\"" })
-    log = UnifiedLogger::Logger.custom_logs.last
+    log = UnifiedLogger::Logger.logs.last
     assert_equal({ key: "value with \"quotes\"" }, log[:message])
   end
 
   test "does not sanitize array messages" do
     @logger.info(["a   b", "\e[31mred\e[0m"])
-    log = UnifiedLogger::Logger.custom_logs.last
+    log = UnifiedLogger::Logger.logs.last
     assert_equal(["a   b", "\e[31mred\e[0m"], log[:message])
   end
 
   test "add with block and nil message uses block" do
     @logger.add(::Logger::INFO) { "from add block" }
-    assert_equal "from add block", UnifiedLogger::Logger.custom_logs.last[:message]
+    assert_equal "from add block", UnifiedLogger::Logger.logs.last[:message]
   end
 
   test "add with nil message and progname uses progname as message" do
     @logger.add(::Logger::INFO, nil, "progname")
-    assert_equal "progname", UnifiedLogger::Logger.custom_logs.last[:message]
+    assert_equal "progname", UnifiedLogger::Logger.logs.last[:message]
   end
 
   # -- extra_log_fields (thread-local) --
@@ -276,22 +276,22 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
 
   test "strips ANSI escape codes from logged message" do
     @logger.info("\e[31mred\e[0m")
-    assert_equal "red", UnifiedLogger::Logger.custom_logs.last[:message]
+    assert_equal "red", UnifiedLogger::Logger.logs.last[:message]
   end
 
   test "replaces double quotes with single quotes in logged message" do
     @logger.info('say "hi"')
-    assert_equal "say 'hi'", UnifiedLogger::Logger.custom_logs.last[:message]
+    assert_equal "say 'hi'", UnifiedLogger::Logger.logs.last[:message]
   end
 
   test "collapses whitespace in logged message" do
     @logger.info("a   b")
-    assert_equal "a b", UnifiedLogger::Logger.custom_logs.last[:message]
+    assert_equal "a b", UnifiedLogger::Logger.logs.last[:message]
   end
 
   test "strips leading and trailing whitespace in logged message" do
     @logger.info("  hello  ")
-    assert_equal "hello", UnifiedLogger::Logger.custom_logs.last[:message]
+    assert_equal "hello", UnifiedLogger::Logger.logs.last[:message]
   end
 
   # -- trim --
@@ -330,15 +330,15 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
 
   # -- format --
 
-  test "returns JSON string when no custom formatter" do
+  test "returns JSON string when no format_log callable" do
     result = UnifiedLogger::Logger.format({ a: 1 })
     assert_equal({ "a" => 1 }, JSON.parse(result))
   end
 
-  test "calls custom format_log when present" do
-    UnifiedLogger.format_log = ->(log) { "CUSTOM:#{log}" }
+  test "calls format_log callable when present" do
+    UnifiedLogger.format_log = ->(log) { "FORMATTED:#{log}" }
     result = UnifiedLogger::Logger.format({ a: 1 })
-    assert result.start_with?("CUSTOM:")
+    assert result.start_with?("FORMATTED:")
   end
 
   test "filters the log before formatting" do

@@ -36,7 +36,7 @@ module UnifiedLogger
         log.merge!(extra) if extra.any?
         log.compact!
 
-        log[:custom] = Logger.fetch_and_reset_custom_logs if Logger.custom_logs.any?
+        log[:logs] = Logger.fetch_and_reset_logs if Logger.logs.any?
         log.merge!(Logger.fetch_and_reset_extra_log_fields) if Logger.extra_log_fields.any?
 
         if $!

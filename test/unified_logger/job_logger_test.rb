@@ -197,28 +197,28 @@ class UnifiedLogger::JobLoggerTest < UnifiedLoggerTestCase
     assert_not_empty @io.read
   end
 
-  # -- Custom logs integration --
+  # -- Logs integration --
 
-  test "includes custom logs when present" do
+  test "includes logs when present" do
     UnifiedLogger::JobLogger.log(**@attrs) do
       @logger.info("inside job")
     end
     log = parsed_log_from(@io)
-    assert log.key?("custom")
-    assert_equal 1, log["custom"].size
+    assert log.key?("logs")
+    assert_equal 1, log["logs"].size
   end
 
-  test "resets custom logs after job" do
+  test "resets logs after job" do
     UnifiedLogger::JobLogger.log(**@attrs) do
       @logger.info("inside")
     end
-    assert_empty UnifiedLogger::Logger.custom_logs
+    assert_empty UnifiedLogger::Logger.logs
   end
 
-  test "omits custom key when no custom logs" do
+  test "omits logs key when no logs" do
     UnifiedLogger::JobLogger.log(**@attrs) { "work" }
     log = parsed_log_from(@io)
-    assert_not log.key?("custom")
+    assert_not log.key?("logs")
   end
 
   # -- Extra log fields integration --

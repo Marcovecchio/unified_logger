@@ -25,7 +25,7 @@ UnifiedLogger replaces this chaos with a single, structured JSON line per event:
 
 - **One line per request** — path, method, headers, params, body, response status, response body, duration, thread/process IDs, and any exceptions, all in one JSON object.
 - **One line per job** — class name, queue, arguments, retry count, duration, status (`:ok`, `:warn`, `:error`), and any exceptions.
-- **In-app logs are captured** — every `Rails.logger.info(...)` call during a request or job is collected in a thread-safe buffer and included in that event's log line under the `custom` key.
+- **In-app logs are captured** — every `Rails.logger.info(...)` call during a request or job is collected in a thread-safe buffer and included in that event's log line under the `logs` key.
 - **Sensitive data is filtered** out of the box — passwords, tokens, secrets, cookies, and more are replaced with `[FILTERED]`.
 - **Exceptions with cleaned backtraces** — when a request or job raises, the exception details (class, message, and a cleaned backtrace with framework noise stripped out) are captured and included in the log entry. It's done without disturbing the exception or changing how it's handled.
 - **Log transform hooks** let you add tenant IDs, Datadog correlation, deploy versions, or anything else to every log line.
@@ -123,7 +123,7 @@ def transform_log(log, env = nil)
   #   log.delete(:ip)
   #   log.delete(:thread_id)
   #   log.delete(:process_id)
-  #   log[:custom] = log[:custom].map { |entry| entry[:message] } if log[:custom].is_a?(Array)
+  #   log[:logs] = log[:logs].map { |entry| entry[:message] } if log[:logs].is_a?(Array)
   # end
 
   # Example of adding Datadog correlation info if Datadog tracing is available.
@@ -193,7 +193,7 @@ class OrdersController < ApplicationController
 end
 ```
 
-The fields are stored in thread-local storage (like `custom_logs`), so they are per-request and thread-safe. When the request finishes, they are merged into the main log hash:
+The fields are stored in thread-local storage, so they are per-request and thread-safe. When the request finishes, they are merged into the main log hash:
 
 ```json
 { "log_type": "request", "...", "order_id": 123, "user_id": 456 }
@@ -290,7 +290,7 @@ Rails.logger.warn("Rate limit approaching")
 Rails.logger.error(service: "stripe", status: 502, message: "External API failed")
 ```
 
-The message can be a String, Hash, or Array — it is stored as-is and serialized to JSON. These calls are **not written immediately**. They are collected in a thread-safe buffer and included in the `custom` key of the enclosing request or job log line. This keeps all related information in a single event.
+The message can be a String, Hash, or Array — it is stored as-is and serialized to JSON. These calls are **not written immediately**. They are collected in a thread-safe buffer and included in the `logs` key of the enclosing request or job log line. This keeps all related information in a single event.
 
 ---
 
@@ -332,7 +332,7 @@ Each HTTP request produces a single JSON line. All timestamps use **ISO 8601 wit
   "thread_id": 70368818150320,
   "process_id": 12345,
   "duration": 0.0423,
-  "custom": [
+  "logs": [
     {
       "timestamp": "2026-03-22T14:30:00.000Z",
       "severity": "info",
@@ -361,7 +361,7 @@ Each background job produces a single JSON line:
   "thread_id": 70368818150320,
   "process_id": 12345,
   "status": "ok",
-  "custom": [
+  "logs": [
     {
       "timestamp": "2026-03-22T14:30:01.789Z",
       "severity": "info",
@@ -432,7 +432,7 @@ The backtrace is cleaned using `ActiveSupport::BacktraceCleaner`: the project ro
                          │       headers, body)             │
                          │     - duration, thread/process   │
                          │     - exception (if any)         │
-                         │  4. Drain custom log buffer      │
+                         │  4. Drain log buffer              │
                          │  5. Apply transform hook          │
                          │  6. Filter sensitive params      │
                          │  7. Write single JSON line       │
