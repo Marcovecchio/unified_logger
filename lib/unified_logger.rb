@@ -20,6 +20,7 @@ module UnifiedLogger
 
   DEFAULTS = {
     max_log_field_size:     2048,
+    max_log_size:           10_000,
     filter_params:          %i[passw secret token crypt salt certificate otp ssn set-cookie http_authorization http_cookie pin],
     auto_insert_middleware: true,
     silence_paths:          []

@@ -371,8 +371,43 @@ class UnifiedLogger::RequestLoggerTest < UnifiedLoggerTestCase
     middleware.call(env)
 
     log = parsed_log_from(@io)
-    assert_equal "users", log["controller"]
+    assert_equal "UsersController", log["controller"]
     assert_equal "index", log["action"]
     assert_equal "1", log["request"]["path_params"]["id"]
+  end
+
+  test "resolves namespaced controller to class name" do
+    middleware = UnifiedLogger::RequestLogger.new(build_rack_app)
+    env = build_rack_env
+    env["action_dispatch.request.path_parameters"] = { controller: "api/v1/transactions", action: "charge" }
+    middleware.call(env)
+
+    log = parsed_log_from(@io)
+    assert_equal "Api::V1::TransactionsController", log["controller"]
+    assert_equal "charge", log["action"]
+  end
+
+  # -- Log size overflow --
+
+  test "splits large logs into overflow lines" do
+    app = lambda do |_env|
+      200.times { |i| @logger.info("entry-#{i}-#{"x" * 100}") }
+      [200, { "content-type" => "application/json" }, ['{"ok":true}']]
+    end
+    middleware = UnifiedLogger::RequestLogger.new(app)
+    middleware.call(build_rack_env)
+
+    @io.rewind
+    lines = @io.readlines
+    assert lines.size > 1, "Expected overflow lines"
+
+    main = JSON.parse(lines.first)
+    assert_not main.key?("logs")
+    assert_equal "request", main["log_type"]
+
+    overflow = JSON.parse(lines[1])
+    assert_equal main["id"], overflow["id"]
+    assert_equal "request", overflow["log_type"]
+    assert_equal 1, overflow["index"]
   end
 end

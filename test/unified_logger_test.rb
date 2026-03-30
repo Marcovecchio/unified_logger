@@ -6,6 +6,7 @@ class UnifiedLoggerTest < UnifiedLoggerTestCase
   test "config returns default values on first access" do
     config = UnifiedLogger.config
     assert_equal 2048, config[:max_log_field_size]
+    assert_equal 10_000, config[:max_log_size]
     assert_includes config[:filter_params], :passw
     assert_includes config[:filter_params], :secret
     assert_includes config[:filter_params], :token

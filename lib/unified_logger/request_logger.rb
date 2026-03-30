@@ -13,7 +13,7 @@ module UnifiedLogger
       if UnifiedLogger.current_logger.is_a?(UnifiedLogger::Logger) && !silenced?(env["REQUEST_PATH"])
         log = build_log(started, env, status, headers, response)
         UnifiedLogger.transform_request_log_callable&.call(log, env)
-        UnifiedLogger.current_logger.write(UnifiedLogger::Logger.format(log))
+        UnifiedLogger::Logger.write_log(log)
       end
     end
 
@@ -36,7 +36,7 @@ module UnifiedLogger
         timestamp:  UnifiedLogger.formatted_time,
         id:         env["action_dispatch.request_id"],
         ip:         env["action_dispatch.remote_ip"].to_s,
-        controller: path_parameters[:controller],
+        controller: path_parameters[:controller]&.camelize&.concat("Controller"),
         action:     path_parameters[:action],
         request:    {
           path:         env["REQUEST_PATH"],

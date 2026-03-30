@@ -91,6 +91,47 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
     assert_empty UnifiedLogger::Logger.logs
   end
 
+  # -- note severity --
+
+  test "note appends a log with note severity" do
+    @logger.note("test message")
+    assert_equal :note, UnifiedLogger::Logger.logs.last[:severity]
+  end
+
+  test "note accepts a block" do
+    @logger.note { "from block" }
+    assert_equal "from block", UnifiedLogger::Logger.logs.last[:message]
+  end
+
+  test "note is suppressed when level is WARN" do
+    @logger.level = ::Logger::WARN
+    @logger.note("should not appear")
+    assert_empty UnifiedLogger::Logger.logs
+  end
+
+  test "note passes through when level is note" do
+    @logger.level = :note
+    @logger.note("should appear")
+    assert_equal 1, UnifiedLogger::Logger.logs.size
+  end
+
+  test "info is suppressed when level is note" do
+    @logger.level = :note
+    @logger.info("should not appear")
+    assert_empty UnifiedLogger::Logger.logs
+  end
+
+  test "warn passes through when level is note" do
+    @logger.level = :note
+    @logger.warn("should appear")
+    assert_equal 1, UnifiedLogger::Logger.logs.size
+  end
+
+  test "level= accepts :note symbol" do
+    @logger.level = :note
+    assert_equal 1.5, @logger.level
+  end
+
   # -- nil / empty / below-level messages --
 
   test "nil message does not append a log" do
@@ -392,5 +433,93 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
     obj = Object.new
     obj.define_singleton_method(:to_s) { "custom_string" }
     assert_equal "custom_string", UnifiedLogger::Logger.format_exception(obj)
+  end
+
+  # -- write_log (log size control) --
+
+  test "write_log writes single line when under MAX_LOG_SIZE" do
+    UnifiedLogger.stubs(:current_logger).returns(@logger)
+    log = { log_type: :request, id: "req-1", logs: [{ message: "small" }] }
+    UnifiedLogger::Logger.write_log(log)
+
+    @io.rewind
+    lines = @io.readlines
+    assert_equal 1, lines.size
+    parsed = JSON.parse(lines.first)
+    assert_equal [{ "message" => "small" }], parsed["logs"]
+  end
+
+  test "write_log splits logs into overflow lines when over MAX_LOG_SIZE" do
+    UnifiedLogger.stubs(:current_logger).returns(@logger)
+    big_logs = 200.times.map { |i| { message: "entry-#{i}-#{"x" * 100}" } }
+    log = { log_type: :request, id: "req-1", logs: big_logs }
+    UnifiedLogger::Logger.write_log(log)
+
+    @io.rewind
+    lines = @io.readlines
+    assert lines.size > 1, "Expected multiple lines, got #{lines.size}"
+
+    main = JSON.parse(lines.first)
+    assert_not main.key?("logs"), "Main line should not have logs key"
+    assert_equal "req-1", main["id"]
+
+    lines[1..].each_with_index do |line, idx|
+      overflow = JSON.parse(line)
+      assert_equal "req-1", overflow["id"]
+      assert_equal "request", overflow["log_type"]
+      assert_equal idx + 1, overflow["index"]
+      assert overflow.key?("logs")
+    end
+  end
+
+  test "write_log overflow lines have incremental index" do
+    UnifiedLogger.stubs(:current_logger).returns(@logger)
+    big_logs = 200.times.map { |i| { message: "entry-#{i}-#{"x" * 100}" } }
+    log = { log_type: :job, id: "job-1", logs: big_logs }
+    UnifiedLogger::Logger.write_log(log)
+
+    @io.rewind
+    lines = @io.readlines
+    overflow_lines = lines[1..]
+    indexes = overflow_lines.map { |l| JSON.parse(l)["index"] }
+    assert_equal (1..indexes.size).to_a, indexes
+  end
+
+  test "write_log preserves log_type in overflow lines" do
+    UnifiedLogger.stubs(:current_logger).returns(@logger)
+    big_logs = 200.times.map { |i| { message: "entry-#{i}-#{"x" * 100}" } }
+    log = { log_type: :job, id: "job-1", logs: big_logs }
+    UnifiedLogger::Logger.write_log(log)
+
+    @io.rewind
+    lines = @io.readlines
+    lines[1..].each do |line|
+      overflow = JSON.parse(line)
+      assert_equal "job", overflow["log_type"]
+    end
+  end
+
+  test "write_log handles single oversized log entry" do
+    UnifiedLogger.stubs(:current_logger).returns(@logger)
+    giant_entry = { message: "x" * 20_000 }
+    log = { log_type: :request, id: "req-1", logs: [giant_entry] }
+    UnifiedLogger::Logger.write_log(log)
+
+    @io.rewind
+    lines = @io.readlines
+    assert_equal 2, lines.size
+    overflow = JSON.parse(lines.last)
+    assert_equal 1, overflow["index"]
+    assert_equal 1, overflow["logs"].size
+  end
+
+  test "write_log writes normally when no logs key" do
+    UnifiedLogger.stubs(:current_logger).returns(@logger)
+    log = { log_type: :request, id: "req-1", data: "x" * 20_000 }
+    UnifiedLogger::Logger.write_log(log)
+
+    @io.rewind
+    lines = @io.readlines
+    assert_equal 1, lines.size
   end
 end

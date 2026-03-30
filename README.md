@@ -64,6 +64,7 @@ All configuration is optional. UnifiedLogger ships with sensible defaults.
 # config/initializers/unified_logger.rb
 UnifiedLogger.configure(
   max_log_field_size:     2048,                              # truncate fields larger than this (default: 2048)
+  max_log_size:           10_000,                            # max log line size before splitting (default: 10_000)
   filter_params:          %i[passw secret token],            # sensitive param patterns (default: see below)
   auto_insert_middleware: true,                               # auto-insert Rack middleware in Rails (default: true)
   silence_paths:          ["/health", %r{^/assets/}]         # paths to skip logging (default: [])
@@ -75,6 +76,7 @@ UnifiedLogger.configure(
 | Option | Default | Description |
 |---|---|---|
 | `max_log_field_size` | `2048` | Maximum character length for any single log field. Larger values are truncated with a `"... (N extra characters omitted)"` suffix. |
+| `max_log_size` | `10_000` | Maximum log line size (measured by `inspect.length`). When exceeded, the `logs` array is extracted and split into separate overflow lines. See [Log Size Control](#log-size-control). |
 | `filter_params` | See below | Array of symbols matching sensitive parameter names. Uses pattern matching — `:passw` matches `password`, `password_confirmation`, etc. |
 | `auto_insert_middleware` | `true` | Automatically insert `UnifiedLogger::RequestLogger` into the Rails middleware stack. Set to `false` if you need to control middleware order manually. |
 | `silence_paths` | `[]` | Array of strings or regexps. Requests matching these paths are not logged. Useful for health checks, assets, etc. |
@@ -292,6 +294,33 @@ Rails.logger.error(service: "stripe", status: 502, message: "External API failed
 
 The message can be a String, Hash, or Array — it is stored as-is and serialized to JSON. These calls are **not written immediately**. They are collected in a thread-safe buffer and included in the `logs` key of the enclosing request or job log line. This keeps all related information in a single event.
 
+### The `note` Level
+
+Rails framework internals log heavily at `info` level — "Started GET", "Processing by", "Rendered layout", etc. If you set `level = :info`, all of this noise ends up in your `logs` buffer. If you set `level = :warn`, you lose your own business-context logs too.
+
+UnifiedLogger adds a `note` severity that sits between `info` and `warn`:
+
+```
+debug < info < note < warn < error < fatal < unknown
+```
+
+Use it for business-context logs that should survive in production:
+
+```ruby
+Rails.logger.note("Payment processed")
+Rails.logger.note(event: "order_shipped", order_id: 123)
+```
+
+Then set the level to `:note` in production:
+
+```ruby
+# config/environments/production.rb
+config.logger = UnifiedLogger::Logger.new($stdout)
+config.logger.level = :note
+```
+
+This suppresses Rails' `info` noise while keeping your `note` calls in the `logs` buffer. `warn`, `error`, and `fatal` still pass through as usual.
+
 ---
 
 ## Log Output
@@ -459,6 +488,26 @@ Large fields (request/response bodies, for example) are JSON-serialized and meas
 ```
 
 This prevents a single large payload from blowing up your log storage.
+
+### Log Size Control
+
+Log aggregators (Datadog, CloudWatch, Elasticsearch) often have per-line size limits. When a request or job accumulates many in-app log entries, the `logs` array can push the total log line past these limits.
+
+UnifiedLogger measures each log hash with `inspect.length` before writing. If it exceeds `max_log_size` (default: 10,000 characters), the `logs` array is extracted from the main log and split into separate overflow lines. The main log is written without `logs`, then each overflow line is emitted with just enough entries to stay within the limit:
+
+```json
+{"log_type": "request", "id": "abc-123", "request": {...}, "response": {...}, "duration": 0.042}
+{"log_type": "request", "id": "abc-123", "index": 1, "logs": [{...}, {...}, ...]}
+{"log_type": "request", "id": "abc-123", "index": 2, "logs": [{...}, {...}, ...]}
+```
+
+Each overflow line shares the same `id` and `log_type` as the main log, with an incremental `index` for ordering. If a single log entry exceeds `max_log_size` on its own, it is emitted as-is — there's nothing to split.
+
+You can adjust the limit in the initializer:
+
+```ruby
+UnifiedLogger.configure(max_log_size: 20_000)
+```
 
 ### Exception & Backtrace Observation
 

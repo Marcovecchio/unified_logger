@@ -273,4 +273,25 @@ class UnifiedLogger::JobLoggerTest < UnifiedLoggerTestCase
     UnifiedLogger::JobLogger.log(**@attrs) { "work" }
     assert_nothing_raised { parsed_log_from(@io) }
   end
+
+  # -- Log size overflow --
+
+  test "splits large logs into overflow lines" do
+    UnifiedLogger::JobLogger.log(**@attrs) do
+      200.times { |i| @logger.info("entry-#{i}-#{"x" * 100}") }
+    end
+
+    @io.rewind
+    lines = @io.readlines
+    assert lines.size > 1, "Expected overflow lines"
+
+    main = JSON.parse(lines.first)
+    assert_not main.key?("logs")
+    assert_equal "job", main["log_type"]
+
+    overflow = JSON.parse(lines[1])
+    assert_equal main["id"], overflow["id"]
+    assert_equal "job", overflow["log_type"]
+    assert_equal 1, overflow["index"]
+  end
 end

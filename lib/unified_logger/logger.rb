@@ -2,9 +2,11 @@ module UnifiedLogger
   class Logger < ::Logger
     LOGS = Concurrent::ThreadLocalVar.new([])
     EXTRA_LOG_FIELDS = Concurrent::ThreadLocalVar.new({})
+    NOTE = 1.5
     SEVERITY_LEVELS = {
       debug:   ::Logger::DEBUG,
       info:    ::Logger::INFO,
+      note:    NOTE,
       warn:    ::Logger::WARN,
       error:   ::Logger::ERROR,
       fatal:   ::Logger::FATAL,
@@ -18,6 +20,14 @@ module UnifiedLogger
       self.formatter = proc {}
     end
 
+    def level=(severity)
+      if severity == :note
+        @level = NOTE
+      else
+        super
+      end
+    end
+
     def debug(message = nil, &block)
       message = block.call if message.nil? && block
       add(::Logger::DEBUG, message)
@@ -26,6 +36,11 @@ module UnifiedLogger
     def info(message = nil, &block)
       message = block.call if message.nil? && block
       add(::Logger::INFO, message)
+    end
+
+    def note(message = nil, &block)
+      message = block.call if message.nil? && block
+      add(NOTE, message)
     end
 
     def warn(message = nil, &block)
@@ -123,7 +138,41 @@ module UnifiedLogger
         formatter.present? ? formatter.call(filtered_log) : filtered_log.to_json
       end
 
+      def write_log(log)
+        logger = UnifiedLogger.current_logger
+        max = UnifiedLogger.config[:max_log_size]
+        if log.inspect.length <= max || !log.key?(:logs)
+          logger.write(format(log))
+        else
+          entries = log.delete(:logs)
+          logger.write(format(log))
+          write_overflow_logs(log[:id], log[:log_type], entries, max, logger)
+        end
+      end
+
       private
+
+      def write_overflow_logs(id, log_type, entries, max, logger)
+        index = 1
+        group = []
+
+        entries.each do |entry|
+          candidate = group + [entry]
+          overflow = { id: id, log_type: log_type, index: index, logs: candidate }
+
+          if overflow.inspect.length > max && group.any?
+            logger.write(format({ id: id, log_type: log_type, index: index, logs: group }))
+            index += 1
+            group = [entry]
+          else
+            group = candidate
+          end
+        end
+
+        return if group.empty?
+
+        logger.write(format({ id: id, log_type: log_type, index: index, logs: group }))
+      end
 
       def filter(content)
         return content unless content.respond_to?(:each)

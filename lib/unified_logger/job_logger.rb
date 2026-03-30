@@ -47,7 +47,7 @@ module UnifiedLogger
         end
 
         UnifiedLogger.transform_job_log_callable&.call(log)
-        UnifiedLogger.current_logger.write(Logger.format(log))
+        Logger.write_log(log)
       end
 
       def parse_time(value)
