@@ -463,7 +463,7 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
     assert_not main.key?("logs"), "Main line should not have logs key"
     assert_equal "req-1", main["id"]
 
-    lines[1..].each_with_index do |line, idx|
+    lines[1..-1].each_with_index do |line, idx|
       overflow = JSON.parse(line)
       assert_equal "req-1", overflow["id"]
       assert_equal "request", overflow["log_type"]
@@ -480,7 +480,7 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
 
     @io.rewind
     lines = @io.readlines
-    overflow_lines = lines[1..]
+    overflow_lines = lines[1..-1]
     indexes = overflow_lines.map { |l| JSON.parse(l)["index"] }
     assert_equal (1..indexes.size).to_a, indexes
   end
@@ -493,7 +493,7 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
 
     @io.rewind
     lines = @io.readlines
-    lines[1..].each do |line|
+    lines[1..-1].each do |line|
       overflow = JSON.parse(line)
       assert_equal "job", overflow["log_type"]
     end
