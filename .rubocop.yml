@@ -31,6 +31,9 @@ Style/OneClassPerFile:
 Style/FrozenStringLiteralComment:
   Enabled: false
 
+Style/SlicingWithRange:
+  Enabled: false
+
 Style/SpecialGlobalVars:
   Enabled: false
 
