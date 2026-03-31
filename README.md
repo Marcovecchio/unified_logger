@@ -111,6 +111,9 @@ UnifiedLogger.configure(
 
   # Add additional parameters to filter out from logs
   # filter_params: UnifiedLogger::DEFAULTS[:filter_params] + %i[password]
+
+  # Max log line size before splitting into overflow logs (default: 10_000)
+  # max_log_size: 10_000
 )
 
 def transform_log(log, env = nil)
