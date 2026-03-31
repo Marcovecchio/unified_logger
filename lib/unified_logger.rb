@@ -11,6 +11,7 @@ require "json"
 require "logger"
 
 require_relative "unified_logger/version"
+require_relative "unified_logger/severity"
 require_relative "unified_logger/logger"
 require_relative "unified_logger/request_logger"
 require_relative "unified_logger/job_logger"

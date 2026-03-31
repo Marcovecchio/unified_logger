@@ -132,6 +132,16 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
     assert_equal 1.5, @logger.level
   end
 
+  test "level= accepts 'note' string" do
+    @logger.level = "note"
+    assert_equal 1.5, @logger.level
+  end
+
+  test "level= accepts 'NOTE' string" do
+    @logger.level = "NOTE"
+    assert_equal 1.5, @logger.level
+  end
+
   # -- nil / empty / below-level messages --
 
   test "nil message does not append a log" do

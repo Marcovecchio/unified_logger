@@ -2,11 +2,10 @@ module UnifiedLogger
   class Logger < ::Logger
     LOGS = Concurrent::ThreadLocalVar.new([])
     EXTRA_LOG_FIELDS = Concurrent::ThreadLocalVar.new({})
-    NOTE = 1.5
     SEVERITY_LEVELS = {
       debug:   ::Logger::DEBUG,
       info:    ::Logger::INFO,
-      note:    NOTE,
+      note:    ::Logger::Severity::NOTE,
       warn:    ::Logger::WARN,
       error:   ::Logger::ERROR,
       fatal:   ::Logger::FATAL,
@@ -18,14 +17,6 @@ module UnifiedLogger
       super
       @logging_device = logging_device
       self.formatter = proc {}
-    end
-
-    def level=(severity)
-      if severity == :note
-        @level = NOTE
-      else
-        super
-      end
     end
 
     def debug(message = nil, &block)
@@ -40,7 +31,7 @@ module UnifiedLogger
 
     def note(message = nil, &block)
       message = block.call if message.nil? && block
-      add(NOTE, message)
+      add(::Logger::Severity::NOTE, message)
     end
 
     def warn(message = nil, &block)
