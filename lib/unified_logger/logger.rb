@@ -137,23 +137,24 @@ module UnifiedLogger
         else
           entries = log.delete(:logs)
           logger.write(format(log))
-          write_overflow_logs(log[:id], log[:log_type], entries, max, logger)
+          base_fields = log.except(:request, :response)
+          write_overflow_logs(base_fields, entries, max, logger)
         end
       end
 
       private
 
-      def write_overflow_logs(id, log_type, entries, max, logger)
-        index = 1
+      def write_overflow_logs(base_fields, entries, max, logger)
+        part = 1
         group = []
 
         entries.each do |entry|
           candidate = group + [entry]
-          overflow = { id: id, log_type: log_type, index: index, logs: candidate }
+          overflow_log = base_fields.merge(overflow: part, logs: candidate)
 
-          if overflow.inspect.length > max && group.any?
-            logger.write(format({ id: id, log_type: log_type, index: index, logs: group }))
-            index += 1
+          if overflow_log.inspect.length > max && group.any?
+            logger.write(format(base_fields.merge(overflow: part, logs: group)))
+            part += 1
             group = [entry]
           else
             group = candidate
@@ -162,7 +163,7 @@ module UnifiedLogger
 
         return if group.empty?
 
-        logger.write(format({ id: id, log_type: log_type, index: index, logs: group }))
+        logger.write(format(base_fields.merge(overflow: part, logs: group)))
       end
 
       def filter(content)

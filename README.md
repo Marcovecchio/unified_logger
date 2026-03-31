@@ -76,7 +76,7 @@ UnifiedLogger.configure(
 | Option | Default | Description |
 |---|---|---|
 | `max_log_field_size` | `2048` | Maximum character length for any single log field. Larger values are truncated with a `"... (N extra characters omitted)"` suffix. |
-| `max_log_size` | `10_000` | Maximum log line size (measured by `inspect.length`). When exceeded, the `logs` array is extracted and split into separate overflow lines. See [Log Size Control](#log-size-control). |
+| `max_log_size` | `10_000` | Maximum log line size (measured by `inspect.length`). When exceeded, the `logs` array is extracted and split into separate overflow logs. See [Log Size Control and Overflow Logs](#log-size-control-and-overflow-logs). |
 | `filter_params` | See below | Array of symbols matching sensitive parameter names. Uses pattern matching — `:passw` matches `password`, `password_confirmation`, etc. |
 | `auto_insert_middleware` | `true` | Automatically insert `UnifiedLogger::RequestLogger` into the Rails middleware stack. Set to `false` if you need to control middleware order manually. |
 | `silence_paths` | `[]` | Array of strings or regexps. Requests matching these paths are not logged. Useful for health checks, assets, etc. |
@@ -489,19 +489,21 @@ Large fields (request/response bodies, for example) are JSON-serialized and meas
 
 This prevents a single large payload from blowing up your log storage.
 
-### Log Size Control
+### Log Size Control and Overflow Logs
 
 Log aggregators (Datadog, CloudWatch, Elasticsearch) often have per-line size limits. When a request or job accumulates many in-app log entries, the `logs` array can push the total log line past these limits.
 
-UnifiedLogger measures each log hash with `inspect.length` before writing. If it exceeds `max_log_size` (default: 10,000 characters), the `logs` array is extracted from the main log and split into separate overflow lines. The main log is written without `logs`, then each overflow line is emitted with just enough entries to stay within the limit:
+UnifiedLogger measures each log hash with `inspect.length` before writing. If it exceeds `max_log_size` (default: 10,000 characters), the `logs` array is extracted from the main log and split into separate **overflow logs**. The main log is written without `logs`, then each overflow log is emitted with just enough entries to stay within the limit:
 
 ```json
 {"log_type": "request", "id": "abc-123", "request": {...}, "response": {...}, "duration": 0.042}
-{"log_type": "request", "id": "abc-123", "index": 1, "logs": [{...}, {...}, ...]}
-{"log_type": "request", "id": "abc-123", "index": 2, "logs": [{...}, {...}, ...]}
+{"log_type": "request", "id": "abc-123", "overflow": 1, "timestamp": "...", "controller": "OrdersController", "action": "create", "duration": 0.042, "logs": [{...}, {...}, ...]}
+{"log_type": "request", "id": "abc-123", "overflow": 2, "timestamp": "...", "controller": "OrdersController", "action": "create", "duration": 0.042, "logs": [{...}, {...}, ...]}
 ```
 
-Each overflow line shares the same `id` and `log_type` as the main log, with an incremental `index` for ordering. If a single log entry exceeds `max_log_size` on its own, it is emitted as-is — there's nothing to split.
+Each overflow log includes all fields from the main log **except** `request` and `response` (which are large and would defeat the purpose of splitting). This makes overflow logs easy to correlate in log aggregators — they carry the same `id`, `log_type`, `timestamp`, `controller`, `action`, `duration`, and any fields added by transform hooks.
+
+The `overflow` field indicates the part number (1, 2, 3...) and its presence identifies the line as an overflow log. If a single log entry exceeds `max_log_size` on its own, it is emitted as-is — there's nothing to split.
 
 You can adjust the limit in the initializer:
 

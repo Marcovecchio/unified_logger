@@ -462,7 +462,13 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
   test "write_log splits logs into overflow lines when over MAX_LOG_SIZE" do
     UnifiedLogger.stubs(:current_logger).returns(@logger)
     big_logs = 200.times.map { |i| { message: "entry-#{i}-#{"x" * 100}" } }
-    log = { log_type: :request, id: "req-1", logs: big_logs }
+    log = {
+      log_type: :request, id: "req-1", timestamp: "2026-03-31T00:00:00.000Z",
+      controller: "UsersController", action: "index",
+      request: { path: "/users", method: "GET" },
+      response: { status: 200 },
+      logs: big_logs
+    }
     UnifiedLogger::Logger.write_log(log)
 
     @io.rewind
@@ -477,12 +483,58 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
       overflow = JSON.parse(line)
       assert_equal "req-1", overflow["id"]
       assert_equal "request", overflow["log_type"]
-      assert_equal idx + 1, overflow["index"]
+      assert_equal idx + 1, overflow["overflow"]
       assert overflow.key?("logs")
     end
   end
 
-  test "write_log overflow lines have incremental index" do
+  test "write_log overflow lines include base fields from main log" do
+    UnifiedLogger.stubs(:current_logger).returns(@logger)
+    big_logs = 200.times.map { |i| { message: "entry-#{i}-#{"x" * 100}" } }
+    log = {
+      log_type: :request, id: "req-1", timestamp: "2026-03-31T00:00:00.000Z",
+      controller: "UsersController", action: "index",
+      thread_id: 123, process_id: 456, duration: 0.5,
+      request: { path: "/users", method: "GET" },
+      response: { status: 200 },
+      logs: big_logs
+    }
+    UnifiedLogger::Logger.write_log(log)
+
+    @io.rewind
+    lines = @io.readlines
+    lines[1..-1].each do |line|
+      overflow = JSON.parse(line)
+      assert_equal "2026-03-31T00:00:00.000Z", overflow["timestamp"]
+      assert_equal "UsersController", overflow["controller"]
+      assert_equal "index", overflow["action"]
+      assert_equal 123, overflow["thread_id"]
+      assert_equal 456, overflow["process_id"]
+      assert_equal 0.5, overflow["duration"]
+    end
+  end
+
+  test "write_log overflow lines exclude request and response" do
+    UnifiedLogger.stubs(:current_logger).returns(@logger)
+    big_logs = 200.times.map { |i| { message: "entry-#{i}-#{"x" * 100}" } }
+    log = {
+      log_type: :request, id: "req-1",
+      request: { path: "/users", method: "GET", body: "x" * 1000 },
+      response: { status: 200, body: "y" * 1000 },
+      logs: big_logs
+    }
+    UnifiedLogger::Logger.write_log(log)
+
+    @io.rewind
+    lines = @io.readlines
+    lines[1..-1].each do |line|
+      overflow = JSON.parse(line)
+      assert_not overflow.key?("request"), "Overflow should not include request"
+      assert_not overflow.key?("response"), "Overflow should not include response"
+    end
+  end
+
+  test "write_log overflow lines have incremental overflow number" do
     UnifiedLogger.stubs(:current_logger).returns(@logger)
     big_logs = 200.times.map { |i| { message: "entry-#{i}-#{"x" * 100}" } }
     log = { log_type: :job, id: "job-1", logs: big_logs }
@@ -491,8 +543,8 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
     @io.rewind
     lines = @io.readlines
     overflow_lines = lines[1..-1]
-    indexes = overflow_lines.map { |l| JSON.parse(l)["index"] }
-    assert_equal (1..indexes.size).to_a, indexes
+    parts = overflow_lines.map { |l| JSON.parse(l)["overflow"] }
+    assert_equal (1..parts.size).to_a, parts
   end
 
   test "write_log preserves log_type in overflow lines" do
@@ -519,7 +571,7 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
     lines = @io.readlines
     assert_equal 2, lines.size
     overflow = JSON.parse(lines.last)
-    assert_equal 1, overflow["index"]
+    assert_equal 1, overflow["overflow"]
     assert_equal 1, overflow["logs"].size
   end
 

@@ -292,6 +292,13 @@ class UnifiedLogger::JobLoggerTest < UnifiedLoggerTestCase
     overflow = JSON.parse(lines[1])
     assert_equal main["id"], overflow["id"]
     assert_equal "job", overflow["log_type"]
-    assert_equal 1, overflow["index"]
+    assert_equal 1, overflow["overflow"]
+    assert_equal "TestJob", overflow["class_name"]
+    assert_equal "default", overflow["queue"]
+    assert overflow.key?("timestamp"), "Overflow should include timestamp"
+    assert overflow.key?("thread_id"), "Overflow should include thread_id"
+    assert overflow.key?("process_id"), "Overflow should include process_id"
+    assert overflow.key?("duration"), "Overflow should include duration"
+    assert_equal "ok", overflow["status"]
   end
 end

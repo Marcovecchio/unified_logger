@@ -408,6 +408,12 @@ class UnifiedLogger::RequestLoggerTest < UnifiedLoggerTestCase
     overflow = JSON.parse(lines[1])
     assert_equal main["id"], overflow["id"]
     assert_equal "request", overflow["log_type"]
-    assert_equal 1, overflow["index"]
+    assert_equal 1, overflow["overflow"]
+    assert overflow.key?("timestamp"), "Overflow should include timestamp"
+    assert overflow.key?("thread_id"), "Overflow should include thread_id"
+    assert overflow.key?("process_id"), "Overflow should include process_id"
+    assert overflow.key?("duration"), "Overflow should include duration"
+    assert_not overflow.key?("request"), "Overflow should not include request"
+    assert_not overflow.key?("response"), "Overflow should not include response"
   end
 end
