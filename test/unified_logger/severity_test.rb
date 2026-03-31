@@ -16,31 +16,33 @@ class UnifiedLogger::SeverityTest < UnifiedLoggerTestCase
     assert Logger::Severity::NOTE < Logger::Severity::WARN
   end
 
-  # -- coerce with :note --
+  # -- coerce with :note (Ruby 3.3+ / logger gem >= 1.6) --
 
-  test "coerce accepts :note symbol" do
-    assert_equal 1.5, Logger::Severity.coerce(:note)
-  end
+  if Logger::Severity.respond_to?(:coerce)
+    test "coerce accepts :note symbol" do
+      assert_equal 1.5, Logger::Severity.coerce(:note)
+    end
 
-  test "coerce accepts 'note' string" do
-    assert_equal 1.5, Logger::Severity.coerce("note")
-  end
+    test "coerce accepts 'note' string" do
+      assert_equal 1.5, Logger::Severity.coerce("note")
+    end
 
-  test "coerce accepts 'NOTE' string" do
-    assert_equal 1.5, Logger::Severity.coerce("NOTE")
-  end
+    test "coerce accepts 'NOTE' string" do
+      assert_equal 1.5, Logger::Severity.coerce("NOTE")
+    end
 
-  test "coerce accepts numeric 1.5" do
-    assert_equal 1.5, Logger::Severity.coerce(1.5)
-  end
+    test "coerce accepts numeric 1.5" do
+      assert_equal 1.5, Logger::Severity.coerce(1.5)
+    end
 
-  test "coerce still works for standard levels" do
-    assert_equal 0, Logger::Severity.coerce(:debug)
-    assert_equal 1, Logger::Severity.coerce(:info)
-    assert_equal 2, Logger::Severity.coerce(:warn)
-    assert_equal 3, Logger::Severity.coerce(:error)
-    assert_equal 4, Logger::Severity.coerce(:fatal)
-    assert_equal 5, Logger::Severity.coerce(:unknown)
+    test "coerce still works for standard levels" do
+      assert_equal 0, Logger::Severity.coerce(:debug)
+      assert_equal 1, Logger::Severity.coerce(:info)
+      assert_equal 2, Logger::Severity.coerce(:warn)
+      assert_equal 3, Logger::Severity.coerce(:error)
+      assert_equal 4, Logger::Severity.coerce(:fatal)
+      assert_equal 5, Logger::Severity.coerce(:unknown)
+    end
   end
 
   # -- plain ::Logger accepts :note --
