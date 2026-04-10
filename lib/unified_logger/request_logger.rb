@@ -10,10 +10,14 @@ module UnifiedLogger
       started = UnifiedLogger.current_time
       status, headers, response = @app.call(env)
     ensure
-      if UnifiedLogger.current_logger.is_a?(UnifiedLogger::Logger) && !silenced?(env["REQUEST_PATH"])
-        log = build_log(started, env, status, headers, response)
-        UnifiedLogger.transform_request_log_callable&.call(log, env)
-        UnifiedLogger::Logger.write_log(log)
+      if UnifiedLogger.current_logger.is_a?(UnifiedLogger::Logger)
+        if silenced?(env["REQUEST_PATH"])
+          UnifiedLogger::Logger.reset_thread_logs
+        else
+          log = build_log(started, env, status, headers, response)
+          UnifiedLogger.transform_request_log_callable&.call(log, env)
+          UnifiedLogger::Logger.write_log(log)
+        end
       end
     end
 

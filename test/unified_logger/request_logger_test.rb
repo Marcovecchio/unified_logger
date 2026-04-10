@@ -216,6 +216,22 @@ class UnifiedLogger::RequestLoggerTest < UnifiedLoggerTestCase
     assert_equal "request", log["log_type"]
   end
 
+  test "does not bleed logs from silenced request into next request" do
+    UnifiedLogger.configure(silence_paths: ["/health"])
+    silenced_app = lambda do |_env|
+      @logger.info("from silenced request")
+      [200, { "content-type" => "application/json" }, ["ok"]]
+    end
+    middleware = UnifiedLogger::RequestLogger.new(silenced_app)
+    middleware.call(build_rack_env(path: "/health"))
+
+    middleware2 = UnifiedLogger::RequestLogger.new(build_rack_app)
+    middleware2.call(build_rack_env(path: "/api/users"))
+
+    log = parsed_log_from(@io)
+    assert_not log.key?("logs"), "Next request should not contain logs from silenced request"
+  end
+
   # -- Exception handling --
 
   test "logs exception info when inner app raises" do
