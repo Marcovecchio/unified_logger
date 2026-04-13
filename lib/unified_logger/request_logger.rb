@@ -7,6 +7,7 @@ module UnifiedLogger
     def call(env)
       return @app.call(env) unless UnifiedLogger.current_logger.is_a?(UnifiedLogger::Logger)
 
+      Thread.current[:unified_logger_silenced] = silenced?(env["REQUEST_PATH"])
       started = UnifiedLogger.current_time
       status, headers, response = @app.call(env)
     ensure
@@ -14,6 +15,8 @@ module UnifiedLogger
         log = build_log(started, env, status, headers, response)
         UnifiedLogger.transform_request_log_callable&.call(log, env)
         UnifiedLogger::Logger.write_log(log)
+      else
+        Thread.current[:unified_logger_silenced] = false
       end
     end
 
