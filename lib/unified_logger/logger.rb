@@ -69,6 +69,8 @@ module UnifiedLogger
       end
 
       def add(hash)
+        return if Thread.current[:unified_logger_silenced]
+
         EXTRA_LOG_FIELDS.value = EXTRA_LOG_FIELDS.value.merge(hash)
       end
 
@@ -195,6 +197,8 @@ module UnifiedLogger
     private
 
     def append_log(severity, message)
+      return if Thread.current[:unified_logger_silenced]
+
       message = sanitize_log_message(message) if message.is_a?(String)
       log_hash = { timestamp: UnifiedLogger.formatted_time, severity: severity, message: message }
 
