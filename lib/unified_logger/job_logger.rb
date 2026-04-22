@@ -3,6 +3,7 @@ module UnifiedLogger
     class << self
       def log(class_name:, id: nil, queue: nil, params: nil,
               enqueued_at: nil, retry_count: 0, max_retries: nil, **extra)
+        Logger.reset_thread_logs
         started = UnifiedLogger.current_time
         yield
       ensure
@@ -36,8 +37,8 @@ module UnifiedLogger
         log.merge!(extra) if extra.any?
         log.compact!
 
-        log[:logs] = Logger.fetch_and_reset_logs if Logger.logs.any?
-        log.merge!(Logger.fetch_and_reset_extra_log_fields) if Logger.extra_log_fields.any?
+        log[:logs] = Logger.logs if Logger.logs.any?
+        log.merge!(Logger.extra_log_fields) if Logger.extra_log_fields.any?
 
         if $!
           log[:exception] = Logger.format_exception($!)

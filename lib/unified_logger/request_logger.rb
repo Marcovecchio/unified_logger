@@ -7,10 +7,12 @@ module UnifiedLogger
     def call(env)
       return @app.call(env) unless UnifiedLogger.current_logger.is_a?(UnifiedLogger::Logger)
 
+      UnifiedLogger::Logger.reset_thread_logs
+      UnifiedLogger.setup_silencing(env["REQUEST_PATH"])
       started = UnifiedLogger.current_time
       status, headers, response = @app.call(env)
     ensure
-      if UnifiedLogger.current_logger.is_a?(UnifiedLogger::Logger) && !silenced?(env["REQUEST_PATH"])
+      if UnifiedLogger.current_logger.is_a?(UnifiedLogger::Logger) && !UnifiedLogger.silenced?
         log = build_log(started, env, status, headers, response)
         UnifiedLogger.transform_request_log_callable&.call(log, env)
         UnifiedLogger::Logger.write_log(log)
@@ -18,12 +20,6 @@ module UnifiedLogger
     end
 
     private
-
-    def silenced?(path)
-      UnifiedLogger.config[:silence_paths].any? do |pattern|
-        pattern.is_a?(Regexp) ? pattern.match?(path) : pattern == path
-      end
-    end
 
     def build_log(started, env, status = nil, headers = nil, response = nil)
       status   ||= 500
@@ -56,8 +52,8 @@ module UnifiedLogger
         duration:   started ? UnifiedLogger.current_time - started : 0
       }
       log[:exception] = UnifiedLogger::Logger.format_exception($!) if $!.present?
-      log[:logs] = UnifiedLogger::Logger.fetch_and_reset_logs if UnifiedLogger::Logger.logs.any?
-      log.merge!(UnifiedLogger::Logger.fetch_and_reset_extra_log_fields) if UnifiedLogger::Logger.extra_log_fields.any?
+      log[:logs] = UnifiedLogger::Logger.logs if UnifiedLogger::Logger.logs.any?
+      log.merge!(UnifiedLogger::Logger.extra_log_fields) if UnifiedLogger::Logger.extra_log_fields.any?
 
       log
     end

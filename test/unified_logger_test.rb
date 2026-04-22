@@ -119,13 +119,6 @@ class UnifiedLoggerTest < UnifiedLoggerTestCase
     assert_equal :info, logs.first[:severity]
   end
 
-  test "fetch_and_reset_logs delegates to Logger" do
-    UnifiedLogger::Logger.new($stdout).info("test")
-    logs = UnifiedLogger.fetch_and_reset_logs
-    assert_equal 1, logs.size
-    assert_empty UnifiedLogger.logs
-  end
-
   test "reset_thread_logs delegates to Logger" do
     UnifiedLogger::Logger.new($stdout).info("test")
     UnifiedLogger.reset_thread_logs
@@ -142,12 +135,5 @@ class UnifiedLoggerTest < UnifiedLoggerTestCase
   test "extra_log_fields delegates to Logger" do
     UnifiedLogger::Logger.add(order_id: 42)
     assert_equal({ order_id: 42 }, UnifiedLogger.extra_log_fields)
-  end
-
-  test "fetch_and_reset_extra_log_fields delegates to Logger" do
-    UnifiedLogger.add(user_id: 1)
-    fields = UnifiedLogger.fetch_and_reset_extra_log_fields
-    assert_equal({ user_id: 1 }, fields)
-    assert_empty UnifiedLogger.extra_log_fields
   end
 end

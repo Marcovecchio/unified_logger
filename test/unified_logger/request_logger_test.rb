@@ -207,6 +207,45 @@ class UnifiedLogger::RequestLoggerTest < UnifiedLoggerTestCase
     assert_empty @io.read
   end
 
+  test "silenced path prevents logs from being added" do
+    UnifiedLogger.configure(silence_paths: ["/health"])
+    logs_during_request = nil
+    app = lambda do |_env|
+      @logger.info("should not be added")
+      logs_during_request = UnifiedLogger::Logger.logs
+      [200, { "content-type" => "text/plain" }, ["OK"]]
+    end
+    middleware = UnifiedLogger::RequestLogger.new(app)
+    middleware.call(build_rack_env(path: "/health"))
+
+    assert_empty logs_during_request
+  end
+
+  test "silenced path prevents extra log fields from being added" do
+    UnifiedLogger.configure(silence_paths: ["/health"])
+    fields_during_request = nil
+    app = lambda do |_env|
+      UnifiedLogger::Logger.add(user_id: 1)
+      fields_during_request = UnifiedLogger::Logger.extra_log_fields
+      [200, { "content-type" => "text/plain" }, ["OK"]]
+    end
+    middleware = UnifiedLogger::RequestLogger.new(app)
+    middleware.call(build_rack_env(path: "/health"))
+
+    assert_empty fields_during_request
+  end
+
+  test "silenced state is reset at start of next request" do
+    UnifiedLogger.configure(silence_paths: ["/health"])
+    middleware = UnifiedLogger::RequestLogger.new(build_rack_app)
+    middleware.call(build_rack_env(path: "/health"))
+    middleware.call(build_rack_env(path: "/api/users"))
+
+    assert_not UnifiedLogger.silenced?
+    log = parsed_log_from(@io)
+    assert_equal "request", log["log_type"]
+  end
+
   test "logs normally when path does not match silence_paths" do
     UnifiedLogger.configure(silence_paths: ["/health"])
     middleware = UnifiedLogger::RequestLogger.new(build_rack_app)
@@ -254,7 +293,7 @@ class UnifiedLogger::RequestLoggerTest < UnifiedLoggerTestCase
     assert_equal 1, log["logs"].size
   end
 
-  test "resets logs after request" do
+  test "logs are included in request log and reset at next request" do
     app = lambda do |_env|
       @logger.info("inside")
       [200, { "content-type" => "application/json" }, ['{"ok":true}']]
@@ -262,6 +301,10 @@ class UnifiedLogger::RequestLoggerTest < UnifiedLoggerTestCase
     middleware = UnifiedLogger::RequestLogger.new(app)
     middleware.call(build_rack_env)
 
+    log = parsed_log_from(@io)
+    assert_equal 1, log["logs"].size
+
+    UnifiedLogger::RequestLogger.new(build_rack_app).call(build_rack_env)
     assert_empty UnifiedLogger::Logger.logs
   end
 
@@ -304,7 +347,7 @@ class UnifiedLogger::RequestLoggerTest < UnifiedLoggerTestCase
     assert_equal 456, log["order_id"]
   end
 
-  test "resets extra_log_fields after request" do
+  test "extra_log_fields are included in request log and reset at next request" do
     app = lambda do |_env|
       UnifiedLogger::Logger.add(user_id: 123)
       [200, { "content-type" => "application/json" }, ['{"ok":true}']]
@@ -312,6 +355,10 @@ class UnifiedLogger::RequestLoggerTest < UnifiedLoggerTestCase
     middleware = UnifiedLogger::RequestLogger.new(app)
     middleware.call(build_rack_env)
 
+    log = parsed_log_from(@io)
+    assert_equal 123, log["user_id"]
+
+    UnifiedLogger::RequestLogger.new(build_rack_app).call(build_rack_env)
     assert_empty UnifiedLogger::Logger.extra_log_fields
   end
 

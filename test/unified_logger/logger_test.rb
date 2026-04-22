@@ -226,18 +226,6 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
     assert_equal 1, other_thread_logs.size
   end
 
-  test "fetch_and_reset_logs returns accumulated logs and clears" do
-    @logger.info("one")
-    @logger.warn("two")
-    logs = UnifiedLogger::Logger.fetch_and_reset_logs
-    assert_equal 2, logs.size
-    assert_empty UnifiedLogger::Logger.logs
-  end
-
-  test "fetch_and_reset_logs returns empty array when no logs" do
-    assert_equal [], UnifiedLogger::Logger.fetch_and_reset_logs
-  end
-
   test "concurrent threads do not interfere" do
     threads = 5.times.map do |i|
       Thread.new do
@@ -307,14 +295,6 @@ class UnifiedLogger::LoggerTest < UnifiedLoggerTestCase
     UnifiedLogger::Logger.add(user_id: 1)
     thread_fields = Thread.new { UnifiedLogger::Logger.extra_log_fields }.value
     assert_empty thread_fields
-  end
-
-  test "fetch_and_reset_extra_log_fields returns fields and clears" do
-    UnifiedLogger::Logger.add(user_id: 1)
-    UnifiedLogger::Logger.add(order_id: 42)
-    fields = UnifiedLogger::Logger.fetch_and_reset_extra_log_fields
-    assert_equal({ user_id: 1, order_id: 42 }, fields)
-    assert_empty UnifiedLogger::Logger.extra_log_fields
   end
 
   test "reset_thread_logs also clears extra_log_fields" do

@@ -208,10 +208,14 @@ class UnifiedLogger::JobLoggerTest < UnifiedLoggerTestCase
     assert_equal 1, log["logs"].size
   end
 
-  test "resets logs after job" do
+  test "logs are included in job log and reset at next job" do
     UnifiedLogger::JobLogger.log(**@attrs) do
       @logger.info("inside")
     end
+    log = parsed_log_from(@io)
+    assert_equal 1, log["logs"].size
+
+    UnifiedLogger::JobLogger.log(**@attrs) { "work" }
     assert_empty UnifiedLogger::Logger.logs
   end
 
@@ -232,10 +236,14 @@ class UnifiedLogger::JobLoggerTest < UnifiedLoggerTestCase
     assert_equal "xyz", log["batch_id"]
   end
 
-  test "resets extra_log_fields after job" do
+  test "extra_log_fields are included in job log and reset at next job" do
     UnifiedLogger::JobLogger.log(**@attrs) do
       UnifiedLogger::Logger.add(user_id: 123)
     end
+    log = parsed_log_from(@io)
+    assert_equal 123, log["user_id"]
+
+    UnifiedLogger::JobLogger.log(**@attrs) { "work" }
     assert_empty UnifiedLogger::Logger.extra_log_fields
   end
 

@@ -57,8 +57,9 @@ module UnifiedLogger
     end
 
     delegate :trim, :format, :format_exception,
-             :logs, :fetch_and_reset_logs, :reset_thread_logs,
-             :add, :extra_log_fields, :fetch_and_reset_extra_log_fields,
+             :logs, :reset_thread_logs,
+             :add, :extra_log_fields,
+             :silenced?, :setup_silencing,
              to: :"UnifiedLogger::Logger"
   end
 

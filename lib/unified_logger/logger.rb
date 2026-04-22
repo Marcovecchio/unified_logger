@@ -2,6 +2,7 @@ module UnifiedLogger
   class Logger < ::Logger
     LOGS = Concurrent::ThreadLocalVar.new([])
     EXTRA_LOG_FIELDS = Concurrent::ThreadLocalVar.new({})
+    SILENCED = Concurrent::ThreadLocalVar.new(false)
     SEVERITY_LEVELS = {
       debug:   ::Logger::DEBUG,
       info:    ::Logger::INFO,
@@ -68,7 +69,19 @@ module UnifiedLogger
         LOGS.value
       end
 
+      def silenced?
+        SILENCED.value
+      end
+
+      def setup_silencing(path)
+        SILENCED.value = UnifiedLogger.config[:silence_paths].any? do |pattern|
+          pattern.is_a?(Regexp) ? pattern.match?(path) : pattern == path
+        end
+      end
+
       def add(hash)
+        return if SILENCED.value
+
         EXTRA_LOG_FIELDS.value = EXTRA_LOG_FIELDS.value.merge(hash)
       end
 
@@ -76,21 +89,10 @@ module UnifiedLogger
         EXTRA_LOG_FIELDS.value
       end
 
-      def fetch_and_reset_extra_log_fields
-        fields = extra_log_fields
-        EXTRA_LOG_FIELDS.value = {}
-        fields
-      end
-
       def reset_thread_logs
         LOGS.value = []
         EXTRA_LOG_FIELDS.value = {}
-      end
-
-      def fetch_and_reset_logs
-        current = logs
-        LOGS.value = []
-        current
+        SILENCED.value = false
       end
 
       def trim(data)
@@ -195,6 +197,8 @@ module UnifiedLogger
     private
 
     def append_log(severity, message)
+      return if SILENCED.value
+
       message = sanitize_log_message(message) if message.is_a?(String)
       log_hash = { timestamp: UnifiedLogger.formatted_time, severity: severity, message: message }
 
