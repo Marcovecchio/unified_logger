@@ -443,31 +443,31 @@ The backtrace is cleaned using `ActiveSupport::BacktraceCleaner`: the project ro
 
 ```
                          ┌─────────────────────────────────┐
-    HTTP Request         │     RequestLogger Middleware     │
+    HTTP Request         │     RequestLogger Middleware    │
    ─────────────────────>│                                 │
-                         │  1. Record start time            │
-                         │  2. Call next middleware / app    │
+                         │  1. Record start time           │
+                         │  2. Call next middleware / app  │
                          │                                 │
                          │     ┌───────────────────────┐   │
-                         │     │   Your Application     │   │
+                         │     │   Your Application    │   │
                          │     │                       │   │
                          │     │  Rails.logger.info()  │──>│── append to thread-local buffer
                          │     │  Rails.logger.warn()  │──>│── append to thread-local buffer
                          │     │                       │   │
                          │     └───────────────────────┘   │
                          │                                 │
-                         │  3. Build log hash               │
-                         │     - request data (path,        │
-                         │       method, headers, params,   │
-                         │       body)                      │
-                         │     - response data (status,     │
-                         │       headers, body)             │
-                         │     - duration, thread/process   │
-                         │     - exception (if any)         │
-                         │  4. Drain log buffer              │
-                         │  5. Apply transform hook          │
-                         │  6. Filter sensitive params      │
-                         │  7. Write single JSON line       │
+                         │  3. Build log hash              │
+                         │     - request data (path,       │
+                         │       method, headers, params,  │
+                         │       body)                     │
+                         │     - response data (status,    │
+                         │       headers, body)            │
+                         │     - duration, thread/process  │
+                         │     - exception (if any)        │
+                         │  4. Drain log buffer            │
+                         │  5. Apply transform hook        │
+                         │  6. Filter sensitive params     │
+                         │  7. Write single JSON line      │
                          │                                 │
     HTTP Response        │                                 │
    <─────────────────────│                                 │
